@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# temporary hack until an installer function is written
+if [ $(uname -s) = 'Darwin' ]; then
+	sedE='E'
+else
+	sedE='r'
+fi
+
 function rapid {
 
 	local query=()
@@ -334,7 +341,7 @@ function rapid {
 				branches=$(git branch)
 			fi
 
-			branches=$(sed = <<< "$branches" | sed '{N;s/\n/ /}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -nr "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )
+			branches=$(sed = <<< "$branches" | sed '{N;s/\n/ /}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )
 			printf "$branches\r\n"
 
 		fi
