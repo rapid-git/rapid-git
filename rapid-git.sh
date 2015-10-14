@@ -1,25 +1,6 @@
 #!/bin/sh
 
 function rapid {
-	# regular colors
-	local K="\e[0;30m"    # black
-	local R="\e[0;31m"    # red
-	local G="\e[0;32m"    # green
-	local Y="\e[0;33m"    # yellow
-	local B="\e[0;34m"    # blue
-	local M="\e[0;35m"    # magenta
-	local C="\e[0;36m"    # cyan
-	local W="\e[0;37m"    # white
-
-	# emphasized (bolded) colors
-	local BK="\e[1;30m"
-	local BR="\e[1;31m"
-	local BG="\e[1;32m"
-	local BY="\e[1;33m"
-	local BB="\e[1;34m"
-	local BM="\e[1;35m"
-	local BC="\e[1;36m"
-	local BW="\e[1;37m"
 
 	local query=()
 	local output
@@ -79,34 +60,34 @@ function rapid {
 
 		if [[ "$markOption" == "reset" ]]; then
 			if [[ "$entry" =~ ^A ]]; then
-				mark="\t${Y}<${W} "
+				mark="\t${fg_yellow}<${c_end} "
 
 			elif [[ "$entry" =~ ^R ]]; then
-				mark="\t${Y}~${W} "
+				mark="\t${fg_yellow}~${c_end} "
 
 			elif [[ "$entry" =~ ^[MDCU] ]]; then
-				mark="\t${Y}-${W} "
+				mark="\t${fg_yellow}-${c_end} "
 
 			fi
 
 		elif [[ "$markOption" == "drop" ]]; then
 			if [[ "$entry" =~ ^\?\? ]]; then
-				mark="\t${C}-${W} "
+				mark="\t${fg_cyan}-${c_end} "
 
 			elif [[ "$entry" =~ ^[MADRCU\ ][MADRCU] ]]; then
-				mark="\t${C}~${W} "
+				mark="\t${fg_cyan}~${c_end} "
 
 			fi
 
 		else
 			if [[ "$entry" =~ ^\?\? ]]; then
-				mark="\t${Y}>${W} "
+				mark="\t${fg_yellow}>${c_end} "
 
 			elif [[ "$entry" =~ ^[MADRCU\ ]R ]]; then
-				mark="\t${Y}~${W} "
+				mark="\t${fg_yellow}~${c_end} "
 
 			elif [[ "$entry" =~ ^[MADRCU\ ][MDCU] ]]; then
-				mark="\t${Y}+${W} "
+				mark="\t${fg_yellow}+${c_end} "
 
 			fi
 		fi
@@ -124,7 +105,7 @@ function rapid {
 
 		for entry in "${!query[@]}"; do
 			if [[ "${query[$entry]}" == "??" ]]; then
-				[[ "$out" == "true" ]] && output+="\t\e[1;31m?\e[0;37m Nothing on index $entry.\r\n"
+				[[ "$out" == "true" ]] && output+="\t${fg_b_red}?$c_end Nothing on index $entry.\r\n"
 				unset query[$entry]
 
 			else
@@ -260,13 +241,13 @@ function rapid {
 			local toCheckout=$(sed '/detached from/ d;' <<< "$branches" | sed -n "$line !d;s/^..//;p")
 
 			if [[ -z "$toCheckout" ]]; then
-				echo -e "\t\e[1;31m?\e[0;37m Nothing on index $line."
+				echo -e "\t${fg_b_red}?$c_end Nothing on index $line."
 			else
 				git checkout "$toCheckout"
 			fi
 
 		else
-			echo -e "\t\e[1;31mx\e[0;37m Invalid input: $line."
+			echo -e "\t${fg_b_red}x$c_end Invalid input: $line."
 
 		fi
   }
@@ -276,13 +257,13 @@ function rapid {
 			branch=$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")
 
 			if [[ -z "$branch" ]]; then
-				echo -e "\t\e[1;31m?\e[0;37m Nothing on index $1."
+				echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
 			else
 				git merge "$branch"
 			fi
 
 		else
-			echo -e "\t\e[1;31mx\e[0;37m Invalid input: $1."
+			echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
 		fi
 	}
 
@@ -300,13 +281,13 @@ function rapid {
 				branch=$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")
 
 				if [[ -z "$branch" ]]; then
-					echo -e "\t\e[1;31m?\e[0;37m Nothing on index $1."
+					echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
 				else
 					git rebase "$branch"
 				fi
 
 			else
-				echo -e "\t\e[1;31mx\e[0;37m Invalid input: $1."
+				echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
 			fi
 		fi
 	}
@@ -320,13 +301,13 @@ function rapid {
 				branch=$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")
 
 				if [[ -z "$branch" ]]; then
-					echo -e "\t\e[1;31m?\e[0;37m Nothing on index $2."
+					echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
 				else
 					git branch -d "$branch"
 				fi
 
 			else
-				echo -e "\t\e[1;31mx\e[0;37m Invalid input: $2."
+				echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
 			fi
 
 		elif [ "$1" == '-D' ]; then
@@ -335,20 +316,16 @@ function rapid {
 				branch=$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")
 
 				if [[ -z "$branch" ]]; then
-					echo -e "\t\e[1;31m?\e[0;37m Nothing on index $2."
+					echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
 				else
 					git branch -D "$branch"
 				fi
 
 			else
-				echo -e "\t\e[1;31mx\e[0;37m Invalid input: $2."
+				echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
 			fi
 
 		else
-			local WHITE="\x1b[0;37m"
-			local YELLOW="\x1b[1;33m"
-			local CYAN="\x1b[1;36m"
-
 			if [[ "$1" == '-a' ]]; then
 				branches=$(git branch -a)
 			elif [[ "$1" == '-r' ]]; then
@@ -357,7 +334,7 @@ function rapid {
 				branches=$(git branch)
 			fi
 
-			branches=$(sed = <<< "$branches" | sed '{N;s/\n/ /}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -nr "s/^/  /;s/^  \*/$CYAN>$WHITE/;s/\([1-9][0-9]*\)$/$YELLOW&$WHITE/;p" )
+			branches=$(sed = <<< "$branches" | sed '{N;s/\n/ /}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -nr "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )
 			printf "$branches\r\n"
 
 		fi
