@@ -1,1 +1,141 @@
 # rapid-git
+
+It provides multiple functions, which aim to use git in a more efficient way. To do that, rapid-git enables you to interact with files and branches using numbers. Each number represent the position/index of a file or branch inside a list like `git status` and `git branch`. It is also possible to define ranges unsing numbers and dots, when interacting with files.
+
+## Prerequisites and installation
+
+There are only 2 requisites worth mentioning. Firstly, your bash version needs to equal or be above v4.0.0. Use the command `bash --version` to read out yours. Secondly, use Cygwin on Windows or use a Mac. rapid-git is dependent on escaped color-codes and currently there are only xterm color-codes as well as cygwin color-codes included. If you want to use it with something else like git on Linux or msysgit on Windows, you have to modify colors.sh beforehand.
+
+Now lets start with adding rapid-git:
+
+1. Start with cloning this repository: 
+    <pre>https://github.com/philiptober/rapid-git.git</pre>
+2. Add colors.sh to *.bash_profile* or *.profile* like:
+    <pre>source path/to/this/file/colors.sh</pre>
+3. Repeat the second step for rapid-git.sh
+4. At this point rapid-git should already work, but you may also add alias.rapid-git.sh to get some default aliases. Simply mirror the second step again to do that
+
+Also some pointers:
+* If neither *.bash_profile* nor *.profile* exist, create them yourself
+* Using Cygwin, *.profile* needs to be called via `cygwin/bin/sh.exe --login -i` or it will not be applied
+* There is a certain trick for Windows users, who wish to create files such as *.profile* via the Windows Explorer. When typing the file name, do it like that without defining any file type:
+    <pre>.profile.</pre>
+
+## Commands
+
+Some commands only depend on indexes while other also depend on ranges. Indexes always refer to the position of a file, folder or branch inside the output lists of `git status` and `git branch`. Ranges can be defined using index and dots. There are the following schemata available:
+
+| schema / argument  | description                                    |
+| ------------------ |:---------------------------------------------- |
+| `..`               | select all list entries                        |
+| `..#` like `..5`   | select the first entry up to the fifth one     |
+| `#..` like `3..`   | select the third entry up to the last one      |
+| `#..#` like `4..7` | select the forth entry up to the seventh entry |
+
+Commands targeting files and folders allow multiple arguments to be passed.
+
+### Overview
+
+- rapid track
+- rapid stage [-p | --patch]
+- rapid unstage
+- rapid drop
+- rapid remove
+- rapid diff [-c]
+- rapid branch [-d | -D | -a | -r]
+- rapid checkout
+- rapid merge
+- rapid rebase [-c | --continue | -a | --abort]
+
+### rapid track
+
+- Track one or multiple files and folders by index or range
+- Indexes based on untracked files and folders of `git status`
+
+### rapid stage
+
+- Stage one or multiple files by index or range
+- Indexes are based on unstaged files of `git status`
+- Use the **-p | --patch** just like you use it with `git add`
+
+### rapid unstage
+
+- Unstage one or multiple files by index or range
+- Indexes are based on staged files of `git status`
+
+### rapid drop
+
+- Drop not yet commited changes of one or multiple files by index or range
+- Indexes are based on unstaged files of `git status`
+
+### rapid remove
+
+- Remove one or multiple files and folders by index or range
+- Indexes are based on untracked files and folders of `git status`
+- This command tries to remove sub-level files and folders too, when trying to remove a folder
+
+### rapid diff
+
+- Show the diff of one or multiple files
+- Indexes are based on unstaged files of `git status`, when using no additional option
+- Indexes are based on staged files of `git status`, when using the option **-c**
+
+### rapid branch
+
+- Show all local branches
+- Mark the current branch
+- Display the index of each branch
+- Show all remote branches by using the option **-r**
+- Show all branches by using the option **-a**
+- Delete a branch by using the option **-d**
+- Force-delete a branch by using the option **-D**
+- Using the options **-r**, **-a**, **-d** and **-D** requires to pass a branch along by using its index
+- Indexes are based on `git branch | rapid branch`
+
+### rapid checkout
+
+- Checkout a branch by using its index
+- Indexes are based on `git branch | rapid branch`
+
+### rapid merge
+
+- Merge a branch by using its index
+- Indexes are based on `git branch | rapid branch`
+ 
+### rapid rebase
+
+- Rebase a branch by using its index
+- Indexes are based on `git branch | rapid branch`
+- Continue rebasing by using the option **-c | --continue**
+- Abort rebasing by using the option **-a | --abort**
+
+## Default aliases
+
+| alias         | description         |
+| ------------- |:--------------------|
+| `rt`          | `rapid track`       |
+| `ra`          | `rapid stage`       |
+| `ru`          | `rapid unstage`     |
+| `rdr`         | `rapid drop`        |
+| `rr`          | `rapid remove`      |
+| `rd`          | `rapid diff`        |
+| `rb`          | `rapid branch`      |
+| `rco`         | `rapid checkout`    |
+| `rme`         | `rapid merge`       |
+| `rre`         | `rapid rebase`      |
+
+## Additional Information
+
+### Author
+
+**Philip Tober**
+
++ [Github](https://github.com/philiptober)
++ [Twitter](https://twitter.com/philiptober)
++ [Wordpress](http://philiptober.wordpress.com/)
+
+### Copyright
+Copyright © 2015 [Philip Tober](https://twitter.com/philiptober).
+
+### License 
+**rapid-git** is under MIT license - http://www.opensource.org/licenses/mit-license.php
