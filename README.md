@@ -2,7 +2,7 @@
 
 It provides multiple functions, which aim to use git in a more efficient way. To do that, rapid-git enables you to interact with files and branches using numbers. Each number represent the position/index of a file or branch inside a list like `git status` and `git branch`. It is also possible to define ranges using numbers and dots, when interacting with files.
 
-The concept behind rapid-git was introduced by (Alexander Groß)[https://github.com/agross] in his repository (git_shizzle)[https://github.com/agross/git_shizzle]. In contrast to this repository, which uses shell/bash, he implemented his project using Ruby. If you are interested, please have a look at his project too.
+The concept behind rapid-git was introduced by [Alexander Groß](https://github.com/agross) in his repository [git_shizzle](https://github.com/agross/git_shizzle). In contrast to this repository, which uses shell/bash, he implemented his project using Ruby. If you are interested, please have a look at his project too.
 
 ## Prerequisites and installation
 
