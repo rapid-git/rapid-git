@@ -1,6 +1,8 @@
 # rapid-git
 
-It provides multiple functions, which aim to use git in a more efficient way. To do that, rapid-git enables you to interact with files and branches using numbers. Each number represent the position/index of a file or branch inside a list like `git status` and `git branch`. It is also possible to define ranges unsing numbers and dots, when interacting with files.
+It provides multiple functions, which aim to use git in a more efficient way. To do that, rapid-git enables you to interact with files and branches using numbers. Each number represent the position/index of a file or branch inside a list like `git status` and `git branch`. It is also possible to define ranges using numbers and dots, when interacting with files.
+
+The concept behind rapid-git was introduced by (Alexander Groß)[https://github.com/agross] in his repository (git_shizzle)[https://github.com/agross/git_shizzle]. In contrast to this repository, which uses shell/bash, he implemented his project using Ruby. If you are interested, please have a look at his project too.
 
 ## Prerequisites and installation
 
@@ -23,7 +25,7 @@ Also some pointers:
 
 ## Commands
 
-Some commands only depend on indexes while other also depend on ranges. Indexes always refer to the position of a file, folder or branch inside the output lists of `git status` and `git branch`. Ranges can be defined using index and dots. There are the following schemata available:
+Some commands only depend on indexes while other also depend on ranges. Indexes always refer to the position of a file, folder or branch inside the output lists of `git status` and `git branch`. The index count starts with **1** not **0**. Ranges can be defined using index and dots. There are the following schemata available:
 
 | schema / argument  | description                                    |
 | ------------------ |:---------------------------------------------- |
@@ -133,6 +135,10 @@ Commands targeting files and folders allow multiple arguments to be passed.
 + [Github](https://github.com/philiptober)
 + [Twitter](https://twitter.com/philiptober)
 + [Wordpress](http://philiptober.wordpress.com/)
+
+### Credits
+
+Thank you [Alexander Groß](https://github.com/agross) for creating [git_shizzle](https://github.com/agross/git_shizzle). It made working with git a lot easier.
 
 ### Copyright
 Copyright © 2015 [Philip Tober](https://twitter.com/philiptober).
