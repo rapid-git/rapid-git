@@ -140,7 +140,7 @@ function rapid {
   }
 
 	function __rapid__stage {
-		local unstaged='/^[MADRCU ][MADRCU]/!d'
+		local unstaged='/^[ MARC][MD]/!d'
 		local args
 
 		if [[ "$1" =~ ^-p|--patch$ ]]; then
@@ -165,10 +165,10 @@ function rapid {
 	}
 
   function __rapid__unstage {
-  	local staged='/^[MADRCU][MADRCU ]/!d'
+  	local staged='/^([MARC][ MD]|D[ M])/!d'
 
 		local status=$(git status --porcelain)
-		local stagedContent=$(sed "$staged" <<< "$status")
+		local stagedContent=$(sed -e "$staged" <<< "$status")
 		__rapid__query "$stagedContent" "$@"
 
 		__rapid__prepare "true" "reset"
@@ -178,7 +178,7 @@ function rapid {
   }
 
 	function __rapid__drop {
-		local unstaged='/^[MADRCU ][MADRCU]/!d'
+		local unstaged='/^[ MARC][MD]/!d'
 
 		local status=$(git status --porcelain)
 		local unstagedContent=$(sed "$unstaged" <<< "$status")
@@ -207,8 +207,8 @@ function rapid {
 		local status=$(git status --porcelain)
 
 		if [ $1 == '-c' ]; then
-			local staged='/^[MADRCU][MADRCU ]/!d'
-			local stagedContent=$(sed "$staged" <<< "$status")
+			local staged='/^([MARC][ MD]|D[ M])/!d'
+			local stagedContent=$(sed -e "$staged" <<< "$status")
 			__rapid__query "$stagedContent" "${@:2}"
 
 			__rapid__prepare "false" "reset"
@@ -216,7 +216,7 @@ function rapid {
 			git diff --cached "${query[@]}"
 
 		else
-			local unstaged='/^[MADRCU ][MADRCU]/!d'
+			local unstaged='/^[ MARC][MD]/!d'
 			local unstagedContent=$(sed "$unstaged" <<< "$status")
 			__rapid__query "$unstagedContent" "$@"
 
