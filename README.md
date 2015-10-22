@@ -123,6 +123,7 @@ Commands targeting files and folders allow multiple arguments to be passed.
 
 | alias         | description         |
 | ------------- |:--------------------|
+| `rst`         | `rapid status`      |
 | `rt`          | `rapid track`       |
 | `ra`          | `rapid stage`       |
 | `ru`          | `rapid unstage`     |
