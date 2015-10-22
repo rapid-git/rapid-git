@@ -299,6 +299,59 @@ function rapid {
 		fi
 	}
 
+	function __rapid__status {
+		local status=$(git status --porcelain)
+
+		local prefixStaged="s/^M[MD ]/modified:   /;s/^A[MD ]/added:      /;s/^D[M ]/deleted:    /;s/^R[MD ]/renamed:    /; s/^C[MD ]/copied:     /"
+		local prefixUnstaged="s/^[MARC ]?M/modified:   /;s/^[MARC ]?D/deleted:    /"
+		local prefixUntracked="s/^\?\?/added:      /"
+		local prefixUnmerged="s/^UU/modified both:     /;s/^AA/added both:        /;s/^UA/added remote:      /;s/^AU/added local:       /;s/^DD/deleted both:      /;s/^UD/deleted remote:    /;s/^DU/deleted local:     /"
+
+		local dyeLinenumbers="s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/"
+		local dyeStagedContent="s/^/$fg_b_red  /"
+		local dyeUnstagedContent="s/^/$fg_b_green  /"
+		local dyeUntrackedContent="s/^/$fg_b_blue  /"
+		local dyeUnmergedContent="s/^/$fg_b_magenta  /"
+
+		local staged='/^([MARC][ MD]|D[ M])/!d'
+		local stagedContent=$(sed -e "$staged" <<< "$status")
+		local textForIndex
+
+		if [[ -n "$stagedContent" ]]; then
+			local stagedFormattedContent=$(sed = <<< "$stagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixStaged;$dyeStagedContent;$dyeLinenumbers;p")
+			textForIndex="Index - staged content:\r\n\r\n${stagedFormattedContent}\r\n\r\n"
+		fi
+
+		local unstaged='/^[ MARC][MD]/!d'
+		local unstagedContent=$(sed "$unstaged" <<< "$status")
+		local textForWorkTree
+
+		if [[ -n "$unstagedContent" ]]; then
+			local unstagedFormattedContent=$(sed = <<< "$unstagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnstaged;$dyeUnstagedContent;$dyeLinenumbers;p")
+			textForWorkTree="Work tree - unstaged content:\r\n\r\n$unstagedFormattedContent\r\n\r\n"
+		fi
+
+		local untracked='/^??/ !d'
+		local untrackedContent=$(sed "$untracked" <<< "$status")
+		local textForUntracked
+
+		if [[ -n "$untrackedContent" ]]; then
+			local untrackedFormattedContent=$(sed = <<< "$untrackedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUntracked;$dyeUntrackedContent;$dyeLinenumbers;p")
+			textForUntracked="Untracked content:\r\n\r\n$untrackedFormattedContent\r\n\r\n"
+		fi
+
+		local unmerged='/^(D[DU]|A[AU]|U[ADU]|)/!d'
+		local unmergedContent=$(sed -e "$unmerged" <<< "$status")
+		local textForUnmerged
+
+		if [[ -n "$unmergedContent" ]]; then
+			local unmergedFormattedContent=$(sed = <<< "$unmergedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnmerged;$dyeUnmergedContent;$dyeLinenumbers;p")
+			textForUnmerged="Unmerged content:\r\n\r\n$unmergedFormattedContent\r\n\r\n"
+		fi
+
+		printf "${textForIndex}${textForWorkTree}${textForUntracked}${textForUnmerged}"
+	}
+
 	function __rapid__branch {
 		local branches
 
@@ -377,6 +430,9 @@ function rapid {
 	elif [[ $1 == 'branch' ]]; then
     __rapid__branch ${@:2}
 
+	elif [[ $1 == 'status' ]]; then
+    __rapid__status
+
 	fi
 
 	unset -f __rapid__query
@@ -392,4 +448,5 @@ function rapid {
 	unset -f __rapid__merge
 	unset -f __rapid__rebase
 	unset -f __rapid__branch
+	unset -f __rapid__status
 }
