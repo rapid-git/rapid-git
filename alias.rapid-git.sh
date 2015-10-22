@@ -9,3 +9,4 @@
   alias rme='rapid merge'
   alias rre='rapid rebase'
   alias rb='rapid branch'
+  alias rst='rapid status'
