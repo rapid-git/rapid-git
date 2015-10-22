@@ -38,6 +38,7 @@ Commands targeting files and folders allow multiple arguments to be passed.
 
 ### Overview
 
+- rapid status
 - rapid track
 - rapid stage [-p | --patch]
 - rapid unstage
@@ -48,6 +49,13 @@ Commands targeting files and folders allow multiple arguments to be passed.
 - rapid checkout
 - rapid merge
 - rapid rebase [-c | --continue | -a | --abort]
+
+### rapid status
+
+- Show staged content suffixed by index
+- Show unstaged content suffixed by index
+- Show unstaged content suffixed by index
+- Show unmerged content suffixed by index (no other rapid command works with these indexes yet)
 
 ### rapid track
 
