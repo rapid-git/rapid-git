@@ -87,7 +87,8 @@ function rapid {
       fi
 
     else
-      if [[ "$entry" =~ ^\?\? ]]; then
+      local untracked='^\?\?'
+      if [[ "$entry" =~ $untracked ]]; then
         mark="\t${fg_yellow}>${c_end} "
 
       elif [[ "$entry" =~ ^[MADRCU\ ]R ]]; then
