@@ -129,8 +129,8 @@ function rapid {
   function __rapid__track {
     local untracked='/^??/ !d'
 
-    local status=$(git status --porcelain)
-    local untrackedContent=$(sed "$untracked" <<< "$status")
+    local git_status=$(git status --porcelain)
+    local untrackedContent=$(sed "$untracked" <<< "$git_status")
     __rapid__query "$untrackedContent" "$@"
 
     __rapid__prepare "true"
@@ -149,8 +149,8 @@ function rapid {
       args="$@"
     fi
 
-    local status=$(git status --porcelain)
-    local unstagedContent=$(sed "$unstaged" <<< "$status")
+    local git_status=$(git status --porcelain)
+    local unstagedContent=$(sed "$unstaged" <<< "$git_status")
     __rapid__query "$unstagedContent" "$args"
 
     __rapid__prepare "true"
@@ -167,8 +167,8 @@ function rapid {
   function __rapid__unstage {
     local staged='/^([MARC][ MD]|D[ M])/!d'
 
-    local status=$(git status --porcelain)
-    local stagedContent=$(sed -e "$staged" <<< "$status")
+    local git_status=$(git status --porcelain)
+    local stagedContent=$(sed -e "$staged" <<< "$git_status")
     __rapid__query "$stagedContent" "$@"
 
     __rapid__prepare "true" "reset"
@@ -180,8 +180,8 @@ function rapid {
   function __rapid__drop {
     local unstaged='/^[ MARC][MD]/!d'
 
-    local status=$(git status --porcelain)
-    local unstagedContent=$(sed "$unstaged" <<< "$status")
+    local git_status=$(git status --porcelain)
+    local unstagedContent=$(sed "$unstaged" <<< "$git_status")
     __rapid__query "$unstagedContent" "$@"
 
     __rapid__prepare "true" "drop"
@@ -193,8 +193,8 @@ function rapid {
   function __rapid__remove {
     local untracked='/^??/!d'
 
-    local status=$(git status --porcelain)
-    local untrackedContent=$(sed "$untracked" <<< "$status")
+    local git_status=$(git status --porcelain)
+    local untrackedContent=$(sed "$untracked" <<< "$git_status")
     __rapid__query "$untrackedContent" "$@"
 
     __rapid__prepare "true" "drop"
@@ -204,11 +204,11 @@ function rapid {
   }
 
   function __rapid__diff {
-    local status=$(git status --porcelain)
+    local git_status=$(git status --porcelain)
 
     if [ $1 == '-c' ]; then
       local staged='/^([MARC][ MD]|D[ M])/!d'
-      local stagedContent=$(sed -e "$staged" <<< "$status")
+      local stagedContent=$(sed -e "$staged" <<< "$git_status")
       __rapid__query "$stagedContent" "${@:2}"
 
       __rapid__prepare "false" "reset"
@@ -217,7 +217,7 @@ function rapid {
 
     else
       local unstaged='/^[ MARC][MD]/!d'
-      local unstagedContent=$(sed "$unstaged" <<< "$status")
+      local unstagedContent=$(sed "$unstaged" <<< "$git_status")
       __rapid__query "$unstagedContent" "$@"
 
       __rapid__prepare "false"
@@ -300,7 +300,7 @@ function rapid {
   }
 
   function __rapid__status {
-    local status=$(git status --porcelain)
+    local git_status=$(git status --porcelain)
 
     local prefixStaged="s/^M[MD ]/modified:   /;s/^A[MD ]/added:      /;s/^D[M ]/deleted:    /;s/^R[MD ]/renamed:    /; s/^C[MD ]/copied:     /"
     local prefixUnstaged="s/^[MARC ]?M/modified:   /;s/^[MARC ]?D/deleted:    /"
@@ -314,7 +314,7 @@ function rapid {
     local dyeUnmergedContent="s/^/$fg_b_magenta  /"
 
     local staged='/^([MARC][ MD]|D[ M])/!d'
-    local stagedContent=$(sed -e "$staged" <<< "$status")
+    local stagedContent=$(sed -e "$staged" <<< "$git_status")
     local textForIndex
 
     if [[ -n "$stagedContent" ]]; then
@@ -323,7 +323,7 @@ function rapid {
     fi
 
     local unstaged='/^[ MARC][MD]/!d'
-    local unstagedContent=$(sed "$unstaged" <<< "$status")
+    local unstagedContent=$(sed "$unstaged" <<< "$git_status")
     local textForWorkTree
 
     if [[ -n "$unstagedContent" ]]; then
@@ -332,7 +332,7 @@ function rapid {
     fi
 
     local untracked='/^??/ !d'
-    local untrackedContent=$(sed "$untracked" <<< "$status")
+    local untrackedContent=$(sed "$untracked" <<< "$git_status")
     local textForUntracked
 
     if [[ -n "$untrackedContent" ]]; then
@@ -341,7 +341,7 @@ function rapid {
     fi
 
     local unmerged='/^(D[DU]|A[AU]|U[ADU]|)/!d'
-    local unmergedContent=$(sed -e "$unmerged" <<< "$status")
+    local unmergedContent=$(sed -e "$unmerged" <<< "$git_status")
     local textForUnmerged
 
     if [[ -n "$unmergedContent" ]]; then
