@@ -24,16 +24,16 @@ function rapid {
       end=""
 
       if [[ $var =~ ^[1-9][0-9]*\.\.[1-9][0-9]*$ ]]; then
-        counter=$(sed 's/\.\.[1-9][0-9]*$//g' <<< "$var")
-        end=$(sed 's/^[1-9][0-9]*\.\.//g' <<< "$var")
+        counter="$(sed 's/\.\.[1-9][0-9]*$//g' <<< "$var")"
+        end="$(sed 's/^[1-9][0-9]*\.\.//g' <<< "$var")"
 
       elif [[ $var =~ ^[1-9][0-9]*\.\.$ ]];then
-        counter=$(sed 's/\.\.$//g' <<< "$var")
-        end=$(sed -n '$=' <<< "$target")
+        counter="$(sed 's/\.\.$//g' <<< "$var")"
+        end="$(sed -n '$=' <<< "$target")"
 
       elif [[ $var =~ ^\.\.[1-9][0-9]*$ ]];then
         counter=1
-        end=$(sed 's/^\.\.//g' <<< "$var")
+        end="$(sed 's/^\.\.//g' <<< "$var")"
 
       elif [[ $var =~ ^[1-9][0-9]*$ ]]; then
         counter=$var
@@ -41,12 +41,12 @@ function rapid {
 
       elif [[ $var =~ ^\.\.$ ]];then
         counter=1
-        end=$(sed -n '$=' <<< "$target")
+        end="$(sed -n '$=' <<< "$target")"
 
       fi
 
       until [ ! $counter -le $end ]; do
-        entry=$(sed "$counter$getLine" <<< "$target")
+        entry="$(sed "$counter$getLine" <<< "$target")"
 
         if [[ -z "$entry" ]]; then
           query[$counter]="??"
@@ -106,7 +106,7 @@ function rapid {
   function __rapid_prepare {
     local out=$1
     local markOption=$2
-    local git_root=$(git rev-parse --show-toplevel)
+    local git_root="$(git rev-parse --show-toplevel)"
     local format='s/^...//;s/"// g;s/ -> / / g'
     local formattedEntry
     local -a keys
@@ -125,7 +125,7 @@ function rapid {
         # Remove key.
         [[ -n "$ZSH_VERSION" ]] && unset "query[$entry]" || unset query[$entry]
       else
-        formattedEntry=$(sed "$format" <<< "${query[$entry]}")
+        formattedEntry="$(sed "$format" <<< "${query[$entry]}")"
         [[ "$out" == "true" ]] && output+="$(__rapid_get_mark "${query[$entry]}" "$markOption")$formattedEntry\r\n"
         query[$entry]="$git_root/$formattedEntry"
       fi
@@ -135,8 +135,8 @@ function rapid {
   function __rapid__track {
     local untracked='/^??/ !d'
 
-    local git_status=$(git status --porcelain)
-    local untrackedContent=$(sed "$untracked" <<< "$git_status")
+    local git_status="$(git status --porcelain)"
+    local untrackedContent="$(sed "$untracked" <<< "$git_status")"
     __rapid_query "$untrackedContent" "$@"
 
     __rapid_prepare "true"
@@ -151,13 +151,13 @@ function rapid {
     local patch='^-p|--patch$'
 
     if [[ "$1" =~ $patch ]]; then
-      args="${@:2}"
+      args=("${@:2}")
     else
-      args="$@"
+      args=("$@")
     fi
 
-    local git_status=$(git status --porcelain)
-    local unstagedContent=$(sed "$unstaged" <<< "$git_status")
+    local git_status="$(git status --porcelain)"
+    local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
     __rapid_query "$unstagedContent" "$args"
 
     __rapid_prepare "true"
@@ -174,8 +174,8 @@ function rapid {
   function __rapid__unstage {
     local staged='/^([MARC][ MD]|D[ M])/!d'
 
-    local git_status=$(git status --porcelain)
-    local stagedContent=$(sed -e "$staged" <<< "$git_status")
+    local git_status="$(git status --porcelain)"
+    local stagedContent="$(sed -e "$staged" <<< "$git_status")"
     __rapid_query "$stagedContent" "$@"
 
     __rapid_prepare "true" "reset"
@@ -187,8 +187,8 @@ function rapid {
   function __rapid__drop {
     local unstaged='/^[ MARC][MD]/!d'
 
-    local git_status=$(git status --porcelain)
-    local unstagedContent=$(sed "$unstaged" <<< "$git_status")
+    local git_status="$(git status --porcelain)"
+    local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
     __rapid_query "$unstagedContent" "$@"
 
     __rapid_prepare "true" "drop"
@@ -200,8 +200,8 @@ function rapid {
   function __rapid__remove {
     local untracked='/^??/!d'
 
-    local git_status=$(git status --porcelain)
-    local untrackedContent=$(sed "$untracked" <<< "$git_status")
+    local git_status="$(git status --porcelain)"
+    local untrackedContent="$(sed "$untracked" <<< "$git_status")"
     __rapid_query "$untrackedContent" "$@"
 
     __rapid_prepare "true" "drop"
@@ -211,11 +211,11 @@ function rapid {
   }
 
   function __rapid__diff {
-    local git_status=$(git status --porcelain)
+    local git_status="$(git status --porcelain)"
 
-    if [[ $1 == '-c' ]]; then
+    if [[ "$1" == '-c' ]]; then
       local staged='/^([MARC][ MD]|D[ M])/!d'
-      local stagedContent=$(sed -e "$staged" <<< "$git_status")
+      local stagedContent="$(sed -$sedE "$staged" <<< "$git_status")"
       __rapid_query "$stagedContent" "${@:2}"
 
       __rapid_prepare "false" "reset"
@@ -224,13 +224,12 @@ function rapid {
 
     else
       local unstaged='/^[ MARC][MD]/!d'
-      local unstagedContent=$(sed "$unstaged" <<< "$git_status")
+      local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
       __rapid_query "$unstagedContent" "$@"
 
       __rapid_prepare "false"
 
       git diff "${query[@]}"
-
     fi
   }
 
@@ -239,20 +238,20 @@ function rapid {
     local line
 
     if [[ $1 == '-a' ]]; then
-      branches=$(git branch -a)
+      branches="$(git branch -a)"
       line="$2"
 
     elif [[ $1 == '-r' ]]; then
-      branches=$(git branch -r)
+      branches="$(git branch -r)"
       line="$2"
 
     else
-      branches=$(git branch)
+      branches="$(git branch)"
       line="$1"
     fi
 
     if [[ "$line" =~ ^[1-9][0-9]*$ ]]; then
-      local toCheckout=$(sed '/detached from/ d;' <<< "$branches" | sed -n "$line !d;s/^..//;p")
+      local toCheckout="$(sed '/detached from/ d;' <<< "$branches" | sed -n "$line !d;s/^..//;p")"
 
       if [[ -z "$toCheckout" ]]; then
         echo -e "\t${fg_b_red}?$c_end Nothing on index $line."
@@ -268,7 +267,7 @@ function rapid {
 
   function __rapid__merge {
     if [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
-      branch=$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")
+      branch="$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")"
 
       if [[ -z "$branch" ]]; then
         echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
@@ -295,7 +294,7 @@ function rapid {
       local branch
 
       if [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
-        branch=$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")
+        branch="$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")"
 
         if [[ -z "$branch" ]]; then
           echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
@@ -310,7 +309,7 @@ function rapid {
   }
 
   function __rapid__status {
-    local git_status=$(git status --porcelain)
+    local git_status="$(git status --porcelain)"
 
     local prefixStaged="s/^M[MD ]/modified:   /;s/^A[MD ]/added:      /;s/^D[M ]/deleted:    /;s/^R[MD ]/renamed:    /; s/^C[MD ]/copied:     /"
     local prefixUnstaged="s/^[MARC ]?M/modified:   /;s/^[MARC ]?D/deleted:    /"
@@ -324,38 +323,38 @@ function rapid {
     local dyeUnmergedContent="s/^/$fg_b_magenta  /"
 
     local staged='/^([MARC][ MD]|D[ M])/!d'
-    local stagedContent=$(sed -e "$staged" <<< "$git_status")
+    local stagedContent="$(sed -$sedE "$staged" <<< "$git_status")"
     local textForIndex
 
     if [[ -n "$stagedContent" ]]; then
-      local stagedFormattedContent=$(sed = <<< "$stagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixStaged;$dyeStagedContent;$dyeLinenumbers;p")
+      local stagedFormattedContent="$(sed = <<< "$stagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixStaged;$dyeStagedContent;$dyeLinenumbers;p")"
       textForIndex="Index - staged content:\r\n\r\n${stagedFormattedContent}\r\n\r\n"
     fi
 
     local unstaged='/^[ MARC][MD]/!d'
-    local unstagedContent=$(sed "$unstaged" <<< "$git_status")
+    local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
     local textForWorkTree
 
     if [[ -n "$unstagedContent" ]]; then
-      local unstagedFormattedContent=$(sed = <<< "$unstagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnstaged;$dyeUnstagedContent;$dyeLinenumbers;p")
+      local unstagedFormattedContent="$(sed = <<< "$unstagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnstaged;$dyeUnstagedContent;$dyeLinenumbers;p")"
       textForWorkTree="Work tree - unstaged content:\r\n\r\n$unstagedFormattedContent\r\n\r\n"
     fi
 
     local untracked='/^??/ !d'
-    local untrackedContent=$(sed "$untracked" <<< "$git_status")
+    local untrackedContent="$(sed "$untracked" <<< "$git_status")"
     local textForUntracked
 
     if [[ -n "$untrackedContent" ]]; then
-      local untrackedFormattedContent=$(sed = <<< "$untrackedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUntracked;$dyeUntrackedContent;$dyeLinenumbers;p")
+      local untrackedFormattedContent="$(sed = <<< "$untrackedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUntracked;$dyeUntrackedContent;$dyeLinenumbers;p")"
       textForUntracked="Untracked content:\r\n\r\n$untrackedFormattedContent\r\n\r\n"
     fi
 
-    local unmerged='/^(D[DU]|A[AU]|U[ADU]|)/!d'
-    local unmergedContent=$(sed -e "$unmerged" <<< "$git_status")
+    local unmerged='/^(D[DU]|A[AU]|U[ADU])/!d'
+    local unmergedContent="$(sed -$sedE "$unmerged" <<< "$git_status")"
     local textForUnmerged
 
     if [[ -n "$unmergedContent" ]]; then
-      local unmergedFormattedContent=$(sed = <<< "$unmergedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnmerged;$dyeUnmergedContent;$dyeLinenumbers;p")
+      local unmergedFormattedContent="$(sed = <<< "$unmergedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnmerged;$dyeUnmergedContent;$dyeLinenumbers;p")"
       textForUnmerged="Unmerged content:\r\n\r\n$unmergedFormattedContent\r\n\r\n"
     fi
 
@@ -368,7 +367,7 @@ function rapid {
     if [[ "$1" == '-d' ]]; then
 
       if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
-        branch=$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")
+        branch="$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")"
 
         if [[ -z "$branch" ]]; then
           echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
@@ -383,7 +382,7 @@ function rapid {
     elif [[ "$1" == '-D' ]]; then
 
       if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
-        branch=$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")
+        branch="$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")"
 
         if [[ -z "$branch" ]]; then
           echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
@@ -397,17 +396,16 @@ function rapid {
 
     else
       if [[ "$1" == '-a' ]]; then
-        branches=$(git branch -a)
+        branches="$(git branch -a)"
       elif [[ "$1" == '-r' ]]; then
-        branches=$(git branch -r)
+        branches="$(git branch -r)"
       else
-        branches=$(git branch)
+        branches="$(git branch)"
       fi
 
-      local detached=$(sed -n$sedE "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")
-      branches=$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )
+      local detached="$(sed -n$sedE "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
+      branches="$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )"
       printf "${detached}${branches}\r\n"
-
     fi
   }
 
