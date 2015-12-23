@@ -142,8 +142,9 @@ function rapid {
   function __rapid__stage {
     local unstaged='/^[ MARC][MD]/!d'
     local args
+    local patch='^-p|--patch$'
 
-    if [[ "$1" =~ ^-p|--patch$ ]]; then
+    if [[ "$1" =~ $patch ]]; then
       args="${@:2}"
     else
       args="$@"
@@ -155,7 +156,7 @@ function rapid {
 
     __rapid__prepare "true"
 
-    if [[ "$1" =~ ^-p|--patch$ ]]; then
+    if [[ "$1" =~ $patch ]]; then
       git add --patch "${query[@]}"
     else
       git add "${query[@]}"
@@ -275,10 +276,13 @@ function rapid {
   }
 
   function __rapid__rebase {
-    if [[ "$1" =~ ^-c|--continue$ ]]; then
+    local continue='^-c|--continue$'
+    local abort='^-a|--abort$'
+
+    if [[ "$1" =~ $continue ]]; then
       git rebase --continue
 
-    elif [[ "$1" =~ ^-a|--abort$ ]]; then
+    elif [[ "$1" =~ $abort ]]; then
       git rebase --abort
 
     else
