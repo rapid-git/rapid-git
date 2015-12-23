@@ -12,7 +12,7 @@ function rapid {
   query=()
   local output
 
-  function __rapid__query {
+  function __rapid_query {
     local target=$1
     local getLine=' !d'
     local counter
@@ -60,7 +60,7 @@ function rapid {
     done
   }
 
-  function __rapid__get_mark {
+  function __rapid_get_mark {
     local entry=$1
     local markOption=$2
     local mark
@@ -103,7 +103,7 @@ function rapid {
     echo -e "$mark"
   }
 
-  function __rapid__prepare {
+  function __rapid_prepare {
     local out=$1
     local markOption=$2
     local git_root=$(git rev-parse --show-toplevel)
@@ -126,7 +126,7 @@ function rapid {
         [[ -n "$ZSH_VERSION" ]] && unset "query[$entry]" || unset query[$entry]
       else
         formattedEntry=$(sed "$format" <<< "${query[$entry]}")
-        [[ "$out" == "true" ]] && output+="$(__rapid__get_mark "${query[$entry]}" "$markOption")$formattedEntry\r\n"
+        [[ "$out" == "true" ]] && output+="$(__rapid_get_mark "${query[$entry]}" "$markOption")$formattedEntry\r\n"
         query[$entry]="$git_root/$formattedEntry"
       fi
     done
@@ -137,9 +137,9 @@ function rapid {
 
     local git_status=$(git status --porcelain)
     local untrackedContent=$(sed "$untracked" <<< "$git_status")
-    __rapid__query "$untrackedContent" "$@"
+    __rapid_query "$untrackedContent" "$@"
 
-    __rapid__prepare "true"
+    __rapid_prepare "true"
 
     git add "${query[@]}"
     printf "$output"
@@ -158,9 +158,9 @@ function rapid {
 
     local git_status=$(git status --porcelain)
     local unstagedContent=$(sed "$unstaged" <<< "$git_status")
-    __rapid__query "$unstagedContent" "$args"
+    __rapid_query "$unstagedContent" "$args"
 
-    __rapid__prepare "true"
+    __rapid_prepare "true"
 
     if [[ "$1" =~ $patch ]]; then
       git add --patch "${query[@]}"
@@ -176,9 +176,9 @@ function rapid {
 
     local git_status=$(git status --porcelain)
     local stagedContent=$(sed -e "$staged" <<< "$git_status")
-    __rapid__query "$stagedContent" "$@"
+    __rapid_query "$stagedContent" "$@"
 
-    __rapid__prepare "true" "reset"
+    __rapid_prepare "true" "reset"
 
     git reset --quiet HEAD "${query[@]}"
     printf "$output"
@@ -189,9 +189,9 @@ function rapid {
 
     local git_status=$(git status --porcelain)
     local unstagedContent=$(sed "$unstaged" <<< "$git_status")
-    __rapid__query "$unstagedContent" "$@"
+    __rapid_query "$unstagedContent" "$@"
 
-    __rapid__prepare "true" "drop"
+    __rapid_prepare "true" "drop"
 
     git checkout -- "${query[@]}"
     printf "$output"
@@ -202,9 +202,9 @@ function rapid {
 
     local git_status=$(git status --porcelain)
     local untrackedContent=$(sed "$untracked" <<< "$git_status")
-    __rapid__query "$untrackedContent" "$@"
+    __rapid_query "$untrackedContent" "$@"
 
-    __rapid__prepare "true" "drop"
+    __rapid_prepare "true" "drop"
 
     rm -rf "${query[@]}"
     printf "$output"
@@ -216,18 +216,18 @@ function rapid {
     if [ $1 == '-c' ]; then
       local staged='/^([MARC][ MD]|D[ M])/!d'
       local stagedContent=$(sed -e "$staged" <<< "$git_status")
-      __rapid__query "$stagedContent" "${@:2}"
+      __rapid_query "$stagedContent" "${@:2}"
 
-      __rapid__prepare "false" "reset"
+      __rapid_prepare "false" "reset"
 
       git diff --cached "${query[@]}"
 
     else
       local unstaged='/^[ MARC][MD]/!d'
       local unstagedContent=$(sed "$unstaged" <<< "$git_status")
-      __rapid__query "$unstagedContent" "$@"
+      __rapid_query "$unstagedContent" "$@"
 
-      __rapid__prepare "false"
+      __rapid_prepare "false"
 
       git diff "${query[@]}"
 
@@ -411,44 +411,27 @@ function rapid {
     fi
   }
 
-  if [[ $1 == 'track' ]]; then
-    __rapid__track ${@:2}
+  local command_prefix='__rapid__'
+  local rapid_command="$command_prefix$1"
+  if declare -f "$rapid_command" > /dev/null ; then
+    $rapid_command "${@:2}"
+  else
+    local rapid_commands
+    if [[ -z "$ZSH_VERSION" ]]; then
+      rapid_commands=$(declare -F | cut --delimiter=' ' --fields=3 | /usr/bin/grep  "$command_prefix" | sed "s/^$command_prefix/  /")
+    else
+      local -a all_functions
+      all_functions=(${(ok)functions})
+      rapid_commands=$(print -l ${${(M)all_functions:#$command_prefix*}/$command_prefix/  })
+    fi
 
-  elif [[ $1 == 'stage' ]]; then
-    __rapid__stage ${@:2}
-
-  elif [[ $1 == 'unstage' ]]; then
-    __rapid__unstage ${@:2}
-
-  elif [[ $1 == 'drop' ]]; then
-    __rapid__drop ${@:2}
-
-  elif [[ $1 == 'remove' ]]; then
-    __rapid__remove ${@:2}
-
-  elif [[ $1 == 'diff' ]]; then
-    __rapid__diff ${@:2}
-
-  elif [[ $1 == 'checkout' ]]; then
-    __rapid__checkout ${@:2}
-
-  elif [[ $1 == 'merge' ]]; then
-    __rapid__merge ${@:2}
-
-  elif [[ $1 == 'rebase' ]]; then
-    __rapid__rebase ${@:2}
-
-  elif [[ $1 == 'branch' ]]; then
-    __rapid__branch ${@:2}
-
-  elif [[ $1 == 'status' ]]; then
-    __rapid__status
-
+    echo -e "Unknown command: ${1:-none}\n\nAvailable commands:\n$rapid_commands" 1>&2
+    return 1
   fi
 
-  unset -f __rapid__query
-  unset -f __rapid__get_mark
-  unset -f __rapid__prepare
+  unset -f __rapid_query
+  unset -f __rapid_get_mark
+  unset -f __rapid_prepare
   unset -f __rapid__track
   unset -f __rapid__stage
   unset -f __rapid__unstage
