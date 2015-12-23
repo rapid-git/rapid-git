@@ -8,8 +8,8 @@ else
 fi
 
 function rapid {
-
-  local query=()
+  [[ -n "$ZSH_VERSION" ]] && local -A query || local -a query
+  query=()
   local output
 
   function __rapid__query {
@@ -108,22 +108,27 @@ function rapid {
     local git_root=$(git rev-parse --show-toplevel)
     local format='s/^...//;s/"// g;s/ -> / / g'
     local formattedEntry
-    local output
+    local -a keys
 
-    for entry in "${!query[@]}"; do
-      if [[ "${query[$entry]}" == "??" ]]; then
+    if [[ -z "$ZSH_VERSION" ]]; then
+      # In bash, we need the array indexes that are assigned.
+      keys="${!query[@]}"
+    else
+      # In zsh, we need an array of ordered keys of the associative array.
+      keys=(${(ko)query})
+    fi
+
+    for entry in $keys; do
+      if [[ "${query[$entry]}" == '??' ]]; then
         [[ "$out" == "true" ]] && output+="\t${fg_b_red}?$c_end Nothing on index $entry.\r\n"
-        unset query[$entry]
-
+        # Remove key.
+        [[ -n "$ZSH_VERSION" ]] && unset "query[$entry]" || unset query[$entry]
       else
         formattedEntry=$(sed "$format" <<< "${query[$entry]}")
         [[ "$out" == "true" ]] && output+="$(__rapid__get_mark "${query[$entry]}" "$markOption")$formattedEntry\r\n"
         query[$entry]="$git_root/$formattedEntry"
-
       fi
     done
-
-    printf "$output"
   }
 
   function __rapid__track {
