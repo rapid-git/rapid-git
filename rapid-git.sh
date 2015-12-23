@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # temporary hack until an installer function is written
-if [ $(uname -s) = 'Darwin' ]; then
+if [[ $(uname -s) == 'Darwin' ]]; then
   sedE='E'
 else
   sedE='r'
@@ -213,7 +213,7 @@ function rapid {
   function __rapid__diff {
     local git_status=$(git status --porcelain)
 
-    if [ $1 == '-c' ]; then
+    if [[ $1 == '-c' ]]; then
       local staged='/^([MARC][ MD]|D[ M])/!d'
       local stagedContent=$(sed -e "$staged" <<< "$git_status")
       __rapid_query "$stagedContent" "${@:2}"
@@ -365,7 +365,7 @@ function rapid {
   function __rapid__branch {
     local branches
 
-    if [ "$1" == '-d' ]; then
+    if [[ "$1" == '-d' ]]; then
 
       if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
         branch=$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")
@@ -380,7 +380,7 @@ function rapid {
         echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
       fi
 
-    elif [ "$1" == '-D' ]; then
+    elif [[ "$1" == '-D' ]]; then
 
       if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
         branch=$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")
