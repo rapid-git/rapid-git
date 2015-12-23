@@ -105,7 +105,7 @@ function rapid {
   function __rapid__prepare {
     local out=$1
     local markOption=$2
-    local path=$(git rev-parse --show-toplevel)
+    local git_root=$(git rev-parse --show-toplevel)
     local format='s/^...//;s/"// g;s/ -> / / g'
     local formattedEntry
     local output
@@ -118,7 +118,7 @@ function rapid {
       else
         formattedEntry=$(sed "$format" <<< "${query[$entry]}")
         [[ "$out" == "true" ]] && output+="$(__rapid__get_mark "${query[$entry]}" "$markOption")$formattedEntry\r\n"
-        query[$entry]="$path/$formattedEntry"
+        query[$entry]="$git_root/$formattedEntry"
 
       fi
     done
