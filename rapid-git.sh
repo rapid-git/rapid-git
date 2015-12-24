@@ -39,6 +39,33 @@ function rapid {
     done
   }
 
+  local c_end
+  local fg_black fg_red fg_green fg_yellow fg_blue fg_magenta fg_cyan fg_white
+  local fg_b_black fg_b_red fg_b_green fg_b_yellow fg_b_blue fg_b_magenta fg_b_cyan fg_b_white
+
+  function __rapid_init_colors {
+    # Commented colors are not used. Speeds up things a bit on Windows where process creation is expensive.
+    c_end="$(git config --get-color "" "reset")"
+
+    # fg_black="$(git config --get-color "" "black")"
+    # fg_red="$(git config --get-color "" "red")"
+    # fg_green="$(git config --get-color "" "green")"
+    fg_yellow="$(git config --get-color "" "yellow")"
+    # fg_blue="$(git config --get-color "" "blue")"
+    # fg_magenta="$(git config --get-color "" "magenta")"
+    fg_cyan="$(git config --get-color "" "cyan")"
+    #fg_white="$(git config --get-color "" "white")"
+
+    # fg_b_black="$(git config --get-color "" "bold black")"
+    fg_b_red="$(git config --get-color "" "bold red")"
+    # fg_b_green="$(git config --get-color "" "bold green")"
+    fg_b_yellow="$(git config --get-color "" "bold yellow")"
+    # fg_b_blue="$(git config --get-color "" "bold blue")"
+    fg_b_magenta="$(git config --get-color "" "bold magenta")"
+    fg_b_cyan="$(git config --get-color "" "bold cyan")"
+    # fg_b_white="$(git config --get-color "" "bold white")"
+  }
+
   function __rapid_command_not_found {
     local requested_command=$1
     local known_commands
@@ -363,9 +390,12 @@ function rapid {
     local prefixUnmerged="s/^UU/modified both:     /;s/^AA/added both:        /;s/^UA/added remote:      /;s/^AU/added local:       /;s/^DD/deleted both:      /;s/^UD/deleted remote:    /;s/^DU/deleted local:     /"
 
     local dyeLinenumbers="s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/"
-    local dyeStagedContent="s/^/$fg_b_red  /"
-    local dyeUnstagedContent="s/^/$fg_b_green  /"
-    local dyeUntrackedContent="s/^/$fg_b_blue  /"
+    local staged_color="$(git config --get-color color.status.added "bold red")"
+    local dyeStagedContent="s/^/$staged_color  /"
+    local unstaged_color="$(git config --get-color color.status.changed "bold green")"
+    local dyeUnstagedContent="s/^/$unstaged_color  /"
+    local untracked_color="$(git config --get-color color.status.untracked "bold blue")"
+    local dyeUntrackedContent="s/^/$untracked_color  /"
     local dyeUnmergedContent="s/^/$fg_b_magenta  /"
 
     local staged='/^([MARC][ MD]|D[ M])/!d'
@@ -464,6 +494,8 @@ function rapid {
   query=()
   local output
   local exit_status
+
+  __rapid_init_colors
 
   local rapid_command="$command_prefix$1"
   if declare -f "$rapid_command" > /dev/null ; then

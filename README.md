@@ -6,16 +6,15 @@ The concept behind rapid-git was introduced by [Alexander Groß](https://github.
 
 ## Prerequisites and installation
 
-There are only 2 requisites worth mentioning. Firstly, your bash version needs to equal or be above v4.0.0. Use the command `bash --version` to read out yours. Secondly, use Cygwin on Windows or use a Mac. rapid-git is dependent on escaped color-codes and currently there are only xterm color-codes as well as cygwin color-codes included. If you want to use it with something else like git on Linux or msysgit on Windows, you have to modify colors.sh beforehand.
+There are only 2 requisites worth mentioning. Firstly, your bash version needs to equal or be above v4.0.0. Use the command `bash --version` to read out yours. Secondly, use Cygwin on Windows or use a Mac. rapid-git uses the same colors that are configured for standard git commands.
 
 Now lets start with adding rapid-git:
 
 1. Start with cloning this repository: 
     <pre>https://github.com/philiptober/rapid-git.git</pre>
-2. Add colors.sh to *.bash_profile* or *.profile* like:
-    <pre>source path/to/this/file/colors.sh</pre>
-3. Repeat the second step for rapid-git.sh
-4. At this point rapid-git should already work, but you may also add alias.rapid-git.sh to get some default aliases. Simply mirror the second step again to do that
+2. Add rapid-git.sh to *.bash_profile* or *.profile* like:
+    <pre>source path/to/this/file/rapid-git.sh</pre>
+3. At this point rapid-git should already work, but you may also add alias.rapid-git.sh to get some default aliases. Simply mirror the second step again to do that
 
 Also some pointers:
 * If neither *.bash_profile* nor *.profile* exist, create them yourself
