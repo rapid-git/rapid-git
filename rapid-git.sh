@@ -185,7 +185,7 @@ function rapid {
     __rapid_prepare "true"
     printf "$output"
 
-    git add "${query[@]}"
+    git add -- "${query[@]}"
   }
 
   function __rapid__stage {
@@ -207,9 +207,9 @@ function rapid {
     printf "$output"
 
     if [[ "$1" =~ $patch ]]; then
-      git add --patch "${query[@]}"
+      git add --patch -- "${query[@]}"
     else
-      git add "${query[@]}"
+      git add -- "${query[@]}"
     fi
   }
 
@@ -223,7 +223,7 @@ function rapid {
     __rapid_prepare "true" "reset"
     printf "$output"
 
-    git reset --quiet HEAD "${query[@]}"
+    git reset --quiet HEAD -- "${query[@]}"
   }
 
   function __rapid__drop {
@@ -249,7 +249,7 @@ function rapid {
     __rapid_prepare "true" "drop"
     printf "$output"
 
-    rm -rf "${query[@]}"
+    rm -rf -- "${query[@]}"
   }
 
   function __rapid__diff {
@@ -262,7 +262,7 @@ function rapid {
 
       __rapid_prepare "false"
 
-      git diff --cached "${query[@]}"
+      git diff --cached -- "${query[@]}"
     else
       local unstaged='/^[ MARC][MD]/!d'
       local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
@@ -270,7 +270,7 @@ function rapid {
 
       __rapid_prepare "false"
 
-      git diff "${query[@]}"
+      git diff -- "${query[@]}"
     fi
   }
 
