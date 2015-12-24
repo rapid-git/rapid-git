@@ -260,7 +260,7 @@ function rapid {
       local stagedContent="$(sed -$sedE "$staged" <<< "$git_status")"
       __rapid_query "$stagedContent" "${@:2}"
 
-      __rapid_prepare "false" "reset"
+      __rapid_prepare "false"
 
       git diff --cached "${query[@]}"
     else
