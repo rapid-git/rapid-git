@@ -1,13 +1,12 @@
 #!/bin/sh
 
-# temporary hack until an installer function is written
-if [[ $(uname -s) == 'Darwin' ]]; then
-  sedE='E'
-else
-  sedE='r'
-fi
-
 function rapid {
+
+  # Temporary hack until an installer function is written.
+  local sedE='r'
+  if [[ "$(uname -s)" == 'Darwin' ]]; then
+    sedE='E'
+  fi
 
   local function_prefix='__rapid_'
   local command_prefix="${function_prefix}_"
