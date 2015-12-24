@@ -147,7 +147,7 @@ function rapid {
 
   function __rapid__stage {
     local unstaged='/^[ MARC][MD]/!d'
-    local args
+    local -a args
     local patch='^-p|--patch$'
 
     if [[ "$1" =~ $patch ]]; then
