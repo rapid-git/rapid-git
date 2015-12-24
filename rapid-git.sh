@@ -134,6 +134,7 @@ function rapid {
     local entry=$1
     local markOption=$2
     local mark
+    local untracked='^\?\?'
 
     if [[ "$markOption" == "reset" ]]; then
       if [[ "$entry" =~ ^A ]]; then
@@ -148,7 +149,7 @@ function rapid {
       fi
 
     elif [[ "$markOption" == "drop" ]]; then
-      if [[ "$entry" =~ ^\?\? ]]; then
+      if [[ "$entry" =~ $untracked ]]; then
         mark="\t${fg_cyan}-${c_end} "
 
       elif [[ "$entry" =~ ^[MADRCU\ ][MADRCU] ]]; then
@@ -157,7 +158,6 @@ function rapid {
       fi
 
     else
-      local untracked='^\?\?'
       if [[ "$entry" =~ $untracked ]]; then
         mark="\t${fg_yellow}>${c_end} "
 
