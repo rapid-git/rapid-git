@@ -176,7 +176,7 @@ function rapid {
   }
 
   function __rapid__track {
-    local untracked='/^??/ !d'
+    local untracked='/^??/!d'
 
     local git_status="$(git status --porcelain)"
     local untrackedContent="$(sed "$untracked" <<< "$git_status")"
@@ -218,7 +218,7 @@ function rapid {
     local staged='/^([MARC][ MD]|D[ M])/!d'
 
     local git_status="$(git status --porcelain)"
-    local stagedContent="$(sed -e "$staged" <<< "$git_status")"
+    local stagedContent="$(sed -$sedE "$staged" <<< "$git_status")"
     __rapid_query "$stagedContent" "$@"
 
     __rapid_prepare "true" "reset"
