@@ -183,9 +183,9 @@ function rapid {
     __rapid_query "$untrackedContent" "$@"
 
     __rapid_prepare "true"
+    printf "$output"
 
     git add "${query[@]}"
-    printf "$output"
   }
 
   function __rapid__stage {
@@ -204,14 +204,13 @@ function rapid {
     __rapid_query "$unstagedContent" "$args"
 
     __rapid_prepare "true"
+    printf "$output"
 
     if [[ "$1" =~ $patch ]]; then
       git add --patch "${query[@]}"
     else
       git add "${query[@]}"
     fi
-
-    printf "$output"
   }
 
   function __rapid__unstage {
@@ -222,9 +221,9 @@ function rapid {
     __rapid_query "$stagedContent" "$@"
 
     __rapid_prepare "true" "reset"
+    printf "$output"
 
     git reset --quiet HEAD "${query[@]}"
-    printf "$output"
   }
 
   function __rapid__drop {
@@ -235,9 +234,9 @@ function rapid {
     __rapid_query "$unstagedContent" "$@"
 
     __rapid_prepare "true" "drop"
+    printf "$output"
 
     git checkout -- "${query[@]}"
-    printf "$output"
   }
 
   function __rapid__remove {
@@ -248,9 +247,9 @@ function rapid {
     __rapid_query "$untrackedContent" "$@"
 
     __rapid_prepare "true" "drop"
+    printf "$output"
 
     rm -rf "${query[@]}"
-    printf "$output"
   }
 
   function __rapid__diff {
@@ -264,7 +263,6 @@ function rapid {
       __rapid_prepare "false" "reset"
 
       git diff --cached "${query[@]}"
-
     else
       local unstaged='/^[ MARC][MD]/!d'
       local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
@@ -300,12 +298,13 @@ function rapid {
         echo -e "\t${fg_b_red}?$c_end Nothing on index $line."
       else
         git checkout "$toCheckout"
+        return $?
       fi
-
     else
       echo -e "\t${fg_b_red}x$c_end Invalid input: $line."
-
     fi
+
+    return 1
   }
 
   function __rapid__merge {
@@ -316,11 +315,13 @@ function rapid {
         echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
       else
         git merge "$branch"
+        return $?
       fi
-
     else
       echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
     fi
+
+    return 1
   }
 
   function __rapid__rebase {
@@ -329,10 +330,10 @@ function rapid {
 
     if [[ "$1" =~ $continue ]]; then
       git rebase --continue
-
+      return $?
     elif [[ "$1" =~ $abort ]]; then
       git rebase --abort
-
+      return $?
     else
       local branch
 
@@ -343,12 +344,14 @@ function rapid {
           echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
         else
           git rebase "$branch"
+          return $?
         fi
-
       else
         echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
       fi
     fi
+
+    return 1
   }
 
   function __rapid__status {
@@ -416,8 +419,8 @@ function rapid {
           echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
         else
           git branch -d "$branch"
+          return $?
         fi
-
       else
         echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
       fi
@@ -431,6 +434,7 @@ function rapid {
           echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
         else
           git branch -D "$branch"
+          return $?
         fi
 
       else
@@ -449,7 +453,11 @@ function rapid {
       local detached="$(sed -n$sedE "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
       branches="$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )"
       printf "${detached}${branches}\r\n"
+
+      return 0
     fi
+
+    return 1
   }
 
   __rapid_zsh && local -A query || local -a query
