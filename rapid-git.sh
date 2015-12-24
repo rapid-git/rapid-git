@@ -55,7 +55,7 @@ function rapid {
           query[$counter]="$entry"
 
         fi
-        counter=$(expr $counter + 1)
+        counter=$((counter + 1))
       done
     done
   }
