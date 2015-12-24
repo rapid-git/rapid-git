@@ -8,9 +8,53 @@ else
 fi
 
 function rapid {
-  [[ -n "$ZSH_VERSION" ]] && local -A query || local -a query
-  query=()
-  local output
+
+  local function_prefix='__rapid_'
+  local command_prefix="${function_prefix}_"
+  local -a rapid_functions
+
+  function __rapid_zsh {
+    [[ -n "$ZSH_VERSION" ]]
+  }
+
+  function __rapid_functions {
+    local function_prefix=$1
+
+    if ! __rapid_zsh; then
+      # Bash uses declare to return all functions.
+      IFS=$'\n'
+      rapid_functions=($(declare -F | cut --delimiter=' ' --fields=3 | /usr/bin/grep "$function_prefix"))
+    else
+      # zsh has a function associative array.
+      local -a all_functions
+      all_functions=(${(ok)functions})
+      rapid_functions=(${${(M)all_functions:#$function_prefix*}})
+    fi
+  }
+
+  function __rapid_cleanup {
+    __rapid_functions "$function_prefix"
+
+    for fun in $rapid_functions; do
+      unset -f "$fun"
+    done
+  }
+
+  function __rapid_command_not_found {
+    local requested_command=$1
+    local known_commands
+
+    __rapid_functions "$command_prefix"
+
+    if ! __rapid_zsh; then
+      known_commands="$(printf '  %s\n' "${rapid_functions[@]/#$command_prefix/}")"
+    else
+      known_commands="$(print -l ${rapid_functions/#$command_prefix/  })"
+    fi
+
+    echo -e "Unknown command: ${1:-none}\n\nAvailable commands:\n$known_commands" 1>&2
+    return 1
+  }
 
   function __rapid_query {
     local target=$1
@@ -111,7 +155,7 @@ function rapid {
     local formattedEntry
     local -a keys
 
-    if [[ -z "$ZSH_VERSION" ]]; then
+    if ! __rapid_zsh; then
       # In bash, we need the array indexes that are assigned.
       keys="${!query[@]}"
     else
@@ -123,7 +167,7 @@ function rapid {
       if [[ "${query[$entry]}" == '??' ]]; then
         [[ "$out" == "true" ]] && output+="\t${fg_b_red}?$c_end Nothing on index $entry.\r\n"
         # Remove key.
-        [[ -n "$ZSH_VERSION" ]] && unset "query[$entry]" || unset query[$entry]
+        __rapid_zsh && unset "query[$entry]" || unset query[$entry]
       else
         formattedEntry="$(sed "$format" <<< "${query[$entry]}")"
         [[ "$out" == "true" ]] && output+="$(__rapid_get_mark "${query[$entry]}" "$markOption")$formattedEntry\r\n"
@@ -409,36 +453,20 @@ function rapid {
     fi
   }
 
-  local command_prefix='__rapid__'
+  __rapid_zsh && local -A query || local -a query
+  query=()
+  local output
+  local exit_status
+
   local rapid_command="$command_prefix$1"
   if declare -f "$rapid_command" > /dev/null ; then
     $rapid_command "${@:2}"
   else
-    local rapid_commands
-    if [[ -z "$ZSH_VERSION" ]]; then
-      rapid_commands=$(declare -F | cut --delimiter=' ' --fields=3 | /usr/bin/grep  "$command_prefix" | sed "s/^$command_prefix/  /")
-    else
-      local -a all_functions
-      all_functions=(${(ok)functions})
-      rapid_commands=$(print -l ${${(M)all_functions:#$command_prefix*}/$command_prefix/  })
-    fi
-
-    echo -e "Unknown command: ${1:-none}\n\nAvailable commands:\n$rapid_commands" 1>&2
-    return 1
+    __rapid_command_not_found "$1"
   fi
 
-  unset -f __rapid_query
-  unset -f __rapid_get_mark
-  unset -f __rapid_prepare
-  unset -f __rapid__track
-  unset -f __rapid__stage
-  unset -f __rapid__unstage
-  unset -f __rapid__drop
-  unset -f __rapid__remove
-  unset -f __rapid__diff
-  unset -f __rapid__checkout
-  unset -f __rapid__merge
-  unset -f __rapid__rebase
-  unset -f __rapid__branch
-  unset -f __rapid__status
+  exit_status=$?
+
+  __rapid_cleanup
+  return $exit_status
 }
