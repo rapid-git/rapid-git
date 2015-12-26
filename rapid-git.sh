@@ -382,7 +382,9 @@ function rapid {
   }
 
   function __rapid__status {
-    local git_status="$(git status --porcelain)"
+    local git_status
+    git_status="$(git status --porcelain)"
+    [[ $? -eq 0 ]] || return $?
 
     local prefixStaged="s/^M[MD ]/modified:   /;s/^A[MD ]/added:      /;s/^D[M ]/deleted:    /;s/^R[MD ]/renamed:    /; s/^C[MD ]/copied:     /"
     local prefixUnstaged="s/^[MARC ]?M/modified:   /;s/^[MARC ]?D/deleted:    /"
@@ -479,6 +481,8 @@ function rapid {
       else
         branches="$(git branch)"
       fi
+
+      [[ $? -eq 0 ]] || return $?
 
       local detached="$(sed -n$sedE "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
       branches="$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )"
