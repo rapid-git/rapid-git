@@ -250,7 +250,9 @@ function rapid {
     __rapid_prepare "$mark_option"
     printf "$output"
 
-    sh -c ""$git_command" "${git_params[@]}" -- "${query[@]}""
+    if [[ ${#query[@]} -ne 0 ]]; then
+      sh -c ""$git_command" "${git_params[@]}" -- "${query[@]}""
+    fi
   }
 
   function __rapid__track {
