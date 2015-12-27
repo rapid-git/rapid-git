@@ -94,9 +94,11 @@ function rapid {
   function __rapid_git_status {
     # In bash we cannot store NULL characters in a variable. Go the extra mile and replace NULLs with \n.
     # http://stackoverflow.com/q/6570531
-    # The pipefail option sets the exit code of the pipeline to the last program to exit non-zero or 0 if all succeed.
-    # http://unix.stackexchange.com/a/73180/72946
-    git_status="$(set -o pipefail; git status --porcelain -z | sed 's/\x0/\n/g')"
+    # The pipefail option is not available on zsh 5.0.2, use two separate invocations.
+    local git_z_status
+    git_z_status="$(git status --porcelain -z)"
+    [[ $? -eq 0 ]] || return $?
+    git_status="$(sed 's/\x0/\n/g' <<< "$git_z_status")"
   }
 
   function __rapid_filter_git_status {
