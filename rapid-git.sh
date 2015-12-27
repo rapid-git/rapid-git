@@ -12,6 +12,11 @@ function rapid {
   local command_prefix="${function_prefix}_"
   local -a rapid_functions
 
+  local filter_untracked='\?\?'
+  local filter_unstaged='[ MARC][MD]'
+  local filter_staged='([MARC][ MD]|D[ M])'
+  local filter_unmerged='(D[DU]|A[AU]|U[ADU])'
+
   function __rapid_zsh {
     [[ -n "$ZSH_VERSION" ]]
   }
@@ -205,11 +210,11 @@ function rapid {
   }
 
   function __rapid__track {
-    local untracked='/^??/!d'
+    __rapid_git_status
+    [[ $? -eq 0 ]] || return $?
 
-    local git_status="$(git status --porcelain)"
-    local untrackedContent="$(sed "$untracked" <<< "$git_status")"
-    __rapid_query "$untrackedContent" "$@"
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter_untracked")"
+    __rapid_query "$lines" "$@"
 
     __rapid_prepare "true"
     printf "$output"
@@ -218,7 +223,6 @@ function rapid {
   }
 
   function __rapid__stage {
-    local unstaged='/^[ MARC][MD]/!d'
     local -a args
     local patch='^-p|--patch$'
 
@@ -228,9 +232,11 @@ function rapid {
       args=("$@")
     fi
 
-    local git_status="$(git status --porcelain)"
-    local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
-    __rapid_query "$unstagedContent" "$args"
+    __rapid_git_status
+    [[ $? -eq 0 ]] || return $?
+
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter_unstaged")"
+    __rapid_query "$lines" "$args"
 
     __rapid_prepare "true"
     printf "$output"
@@ -243,11 +249,11 @@ function rapid {
   }
 
   function __rapid__unstage {
-    local staged='/^([MARC][ MD]|D[ M])/!d'
+    __rapid_git_status
+    [[ $? -eq 0 ]] || return $?
 
-    local git_status="$(git status --porcelain)"
-    local stagedContent="$(sed -$sedE "$staged" <<< "$git_status")"
-    __rapid_query "$stagedContent" "$@"
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter_staged")"
+    __rapid_query "$lines" "$@"
 
     __rapid_prepare "true" "reset"
     printf "$output"
@@ -256,11 +262,11 @@ function rapid {
   }
 
   function __rapid__drop {
-    local unstaged='/^[ MARC][MD]/!d'
+    __rapid_git_status
+    [[ $? -eq 0 ]] || return $?
 
-    local git_status="$(git status --porcelain)"
-    local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
-    __rapid_query "$unstagedContent" "$@"
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter_unstaged")"
+    __rapid_query "$lines" "$args"
 
     __rapid_prepare "true" "drop"
     printf "$output"
@@ -269,11 +275,11 @@ function rapid {
   }
 
   function __rapid__remove {
-    local untracked='/^??/!d'
+    __rapid_git_status
+    [[ $? -eq 0 ]] || return $?
 
-    local git_status="$(git status --porcelain)"
-    local untrackedContent="$(sed "$untracked" <<< "$git_status")"
-    __rapid_query "$untrackedContent" "$@"
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter_untracked")"
+    __rapid_query "$lines" "$@"
 
     __rapid_prepare "true" "drop"
     printf "$output"
@@ -383,13 +389,28 @@ function rapid {
     return 1
   }
 
+  function __rapid_git_status {
+    # In bash we cannot store NULL characters in a variable. Go the extra mile and replace NULLs with \n.
+    # http://stackoverflow.com/q/6570531
+    # The pipefail option sets the exit code of the pipeline to the last program to exit non-zero or 0 if all succeed.
+    # http://unix.stackexchange.com/a/73180/72946
+    git_status="$(set -o pipefail; git status --porcelain -z | sed 's/\x0/\n/g')"
+  }
+
+  function __rapid_filter_git_status {
+    local git_status=$1
+    local filter="/^$2/!d"
+
+    printf "%s" "$(sed -$sedE "$filter" <<< "$git_status")"
+  }
+
   function __rapid_status_of_type {
     local header=$1
     local git_status=$2
-    local filter="/^$3/!d"
+    local filter=$3
     local color=$4
 
-    local lines="$(sed -$sedE "$filter" <<< "$git_status")"
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter")"
 
     if [[ -z "$lines" ]]; then
       return
@@ -434,18 +455,12 @@ function rapid {
   }
 
   function __rapid__status {
-    # In bash we cannot store NULL characters in a variable. Go the extra mile and replace NULLs with \n.
-    # http://stackoverflow.com/q/6570531
-    # The pipefail option sets the exit code of the pipeline to the last program to exit non-zero or 0 if all succeed.
-    # http://unix.stackexchange.com/a/73180/72946
-    local git_status
-    git_status="$(set -o pipefail; git status --porcelain -z | sed 's/\x0/\n/g')"
-
+    __rapid_git_status
     [[ $? -eq 0 ]] || return $?
 
     __rapid_status_of_type 'Index - staged files' \
       "$git_status" \
-      '([MARC][ MD]|D[ M])' \
+      "$filter_staged" \
       "$(git config --get-color color.status.added "bold green")" \
       'M[MD ]'    'modified:        ' \
       'A[MD ]'    'new file:        ' \
@@ -455,20 +470,20 @@ function rapid {
 
     __rapid_status_of_type 'Work tree - unstaged files' \
       "$git_status" \
-      '[ MARC][MD]' \
+      "$filter_unstaged" \
       "$(git config --get-color color.status.changed "bold green")" \
       '[MARC ]?M' 'modified:        ' \
       '[MARC ]?D' 'deleted:         '
 
     __rapid_status_of_type 'Untracked files' \
       "$git_status" \
-      '\?\?' \
+      "$filter_untracked" \
       "$(git config --get-color color.status.untracked "bold blue")" \
       '\?\?'      'untracked file:  '
 
     __rapid_status_of_type 'Unmerged files' \
       "$git_status" \
-      '(D[DU]|A[AU]|U[ADU])' \
+      "$filter_unmerged" \
       "$fg_b_magenta" \
       'UU'        'both modified:   ' \
       'AA'        'both added:      ' \
@@ -536,6 +551,7 @@ function rapid {
 
   __rapid_zsh && local -A query || local -a query
   query=()
+  local git_status
   local output
   local exit_status
 
