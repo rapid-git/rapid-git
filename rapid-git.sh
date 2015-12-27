@@ -411,12 +411,15 @@ function rapid {
         # Put index between lines: <line> -> <index>\n<line>
         {=}
         ' <<< "$lines" | \
-      sed --silent -$sedE "
+      sed --silent -$sedE -e '
         # <index>\n<status> <file> -> <index>\t<status> <file>
         {N;s/\n/\t/}
-
+      ' -e :a -e "
+        # Right-pad indexes shorter than three characters to three characters.
+        {s/^[ 0-9]{1,2}\t.*/ &/;ta}
+      " -e "
         # <index>\t<status> <file> -> (<index>)\t<status>\t<file>
-        {s/^([1-9][0-9]*)\t(..) (.*)/(\1)\t\2\t\3/}
+        {s/^(( *)([1-9][0-9]*))\t(..) (.*)/\2(\3)\t\4\t\5/}
 
         # Replace status with text, colorize fields, reorder fields.
         {$prefixes;$colorize;$order_fields;p}"
