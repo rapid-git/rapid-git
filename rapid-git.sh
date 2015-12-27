@@ -44,6 +44,8 @@ function rapid {
   local fg_b_black fg_b_red fg_b_green fg_b_yellow fg_b_blue fg_b_magenta fg_b_cyan fg_b_white
 
   function __rapid_init_colors {
+    [[ -t 1 ]] || return
+
     # Commented colors are not used. Speeds up things a bit on Windows where process creation is expensive.
     c_end="$(git config --get-color "" "reset")"
 
@@ -403,7 +405,10 @@ function rapid {
     done
 
     local index_color=$fg_b_yellow
-    local colorize="s/^(.*)\t(.*)\t(.*)/$index_color\1$c_end\t$color\2$c_end\t$color\3$c_end/"
+    local colorize
+    if [[ -t 1 ]]; then
+      colorize="s/^(.*)\t(.*)\t(.*)/$index_color\1$c_end\t$color\2$c_end\t$color\3$c_end/"
+    fi
     local order_fields='s/^(.*)\t(.*)\t(.*)/  \2 \1 \3/'
 
     local formatted="$(
@@ -441,9 +446,9 @@ function rapid {
     __rapid_status_of_type 'Index - staged files' \
       "$git_status" \
       '([MARC][ MD]|D[ M])' \
-      "$(git config --get-color color.status.changed "bold green")" \
+      "$(git config --get-color color.status.added "bold green")" \
       'M[MD ]'    'modified:        ' \
-      'A[MD ]'    'added:           ' \
+      'A[MD ]'    'new file:        ' \
       'D[M ]'     'deleted:         ' \
       'R[MD ]'    'renamed:         ' \
       'C[MD ]'    'copied:          '
