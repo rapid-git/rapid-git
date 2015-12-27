@@ -108,59 +108,64 @@ function rapid {
 
   function __rapid_query {
     local target=$1
-    local getLine=' !d'
-    local counter
-    local end
-    local entry
 
-    for var in ${@:2}; do
-      count=""
-      end=""
+    # Process the rest of the parameters either as indexes or as git params.
+    shift
+    while [[ $# -gt 0 ]]; do
+      local var=$1
+      local index=
+      local end=
 
       if [[ $var =~ ^[1-9][0-9]*\.\.[1-9][0-9]*$ ]]; then
-        counter="$(sed 's/\.\.[1-9][0-9]*$//g' <<< "$var")"
+        index="$(sed 's/\.\.[1-9][0-9]*$//g' <<< "$var")"
         end="$(sed 's/^[1-9][0-9]*\.\.//g' <<< "$var")"
 
-      elif [[ $var =~ ^[1-9][0-9]*\.\.$ ]];then
-        counter="$(sed 's/\.\.$//g' <<< "$var")"
+      elif [[ $var =~ ^[1-9][0-9]*\.\.$ ]]; then
+        index="$(sed 's/\.\.$//g' <<< "$var")"
         end="$(sed -n '$=' <<< "$target")"
 
-      elif [[ $var =~ ^\.\.[1-9][0-9]*$ ]];then
-        counter=1
+      elif [[ $var =~ ^\.\.[1-9][0-9]*$ ]]; then
+        index=1
         end="$(sed 's/^\.\.//g' <<< "$var")"
 
       elif [[ $var =~ ^[1-9][0-9]*$ ]]; then
-        counter=$var
+        index=$var
         end=$var
 
-      elif [[ $var =~ ^\.\.$ ]];then
-        counter=1
+      elif [[ $var =~ '^\.\.$' ]]; then
+        index=1
         end="$(sed -n '$=' <<< "$target")"
+      else
+        git_params+=("$var")
 
+        # Make sure the while loop below isn't entered.
+        index=1
+        end=$((index - 1))
       fi
 
-      until [ ! $counter -le $end ]; do
-        entry="$(sed "$counter$getLine" <<< "$target")"
+      while [[ $index -le $end ]]; do
+        local file_status="$(sed "$index!d" <<< "$target")"
 
-        if [[ -z "$entry" ]]; then
-          query[$counter]="??"
-
-        elif [[ -z "${query[$counter]}" ]]; then
-          query[$counter]="$entry"
-
+        if [[ -z "$file_status" ]]; then
+          query[$index]="??"
+        elif [[ -z "${query[$index]}" ]]; then
+          query[$index]="$file_status"
         fi
-        counter=$((counter + 1))
+
+        index=$((index + 1))
       done
+
+      shift
     done
   }
 
   function __rapid_get_mark {
     local entry=$1
-    local markOption=$2
+    local mark_option=$2
     local mark
     local untracked='^\?\?'
 
-    if [[ "$markOption" == "reset" ]]; then
+    if [[ "$mark_option" == "reset" ]]; then
       if [[ "$entry" =~ ^A ]]; then
         mark="\t${fg_yellow}<${c_end} "
 
@@ -172,7 +177,7 @@ function rapid {
 
       fi
 
-    elif [[ "$markOption" == "drop" ]]; then
+    elif [[ "$mark_option" == "drop" ]]; then
       if [[ "$entry" =~ $untracked ]]; then
         mark="\t${fg_cyan}-${c_end} "
 
@@ -181,7 +186,7 @@ function rapid {
 
       fi
 
-    else
+    elif [[ "$mark_option" != "false" ]]; then
       if [[ "$entry" =~ $untracked ]]; then
         mark="\t${fg_yellow}>${c_end} "
 
@@ -198,133 +203,85 @@ function rapid {
   }
 
   function __rapid_prepare {
-    local out=$1
-    local markOption=$2
+    local mark_option=$1
     local git_root="$(git rev-parse --show-toplevel)"
-    local format='s/^...//;s/"// g;s/ -> / / g'
-    local formattedEntry
     local -a keys
 
     if ! __rapid_zsh; then
       # In bash, we need the array indexes that are assigned.
-      keys="${!query[@]}"
+      keys=("${!query[@]}")
     else
       # In zsh, we need an array of ordered keys of the associative array.
       keys=(${(ko)query})
     fi
 
-    for entry in $keys; do
-      if [[ "${query[$entry]}" == '??' ]]; then
-        [[ "$out" == "true" ]] && output+="\t${fg_b_red}?$c_end Nothing on index $entry.\r\n"
+    for key in ${keys[@]}; do
+      if [[ "${query[$key]}" == '??' ]]; then
+        [[ "$mark_option" != "false" ]] && output+="\t${fg_b_red}?$c_end Nothing on index $key.\n"
+
         # Remove key.
-        __rapid_zsh && unset "query[$entry]" || unset query[$entry]
+        __rapid_zsh && unset "query[$key]" || unset query[$key]
       else
-        formattedEntry="$(sed "$format" <<< "${query[$entry]}")"
-        [[ "$out" == "true" ]] && output+="$(__rapid_get_mark "${query[$entry]}" "$markOption")$formattedEntry\r\n"
-        query[$entry]="$git_root/$formattedEntry"
+        # Remove git status prefix.
+        local file=$(sed "s/^...//" <<< "${query[$key]}")
+        [[ "$mark_option" != "false" ]] && output+="$(__rapid_get_mark "${query[$key]}" "$mark_option")$file\n"
+
+        query[$key]="'$git_root/$file'"
       fi
     done
   }
 
   # Commands for the index.
-  function __rapid__track {
+  function __rapid_index_command {
+    local git_command=$1
+    local filter=$2
+    local mark_option=$3
+
+    shift 3
+    local -a args
+    args=($@)
+
     __rapid_git_status
     [[ $? -eq 0 ]] || return $?
 
-    local lines="$(__rapid_filter_git_status "$git_status" "$filter_untracked")"
-    __rapid_query "$lines" "$@"
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter")"
+    __rapid_query "$lines" "${args[@]}"
 
-    __rapid_prepare "true"
+    __rapid_prepare "$mark_option"
     printf "$output"
 
-    git add -- "${query[@]}"
+    sh -c ""$git_command" "${git_params[@]}" -- "${query[@]}""
+  }
+
+  function __rapid__track {
+    __rapid_index_command 'git add' "$filter_untracked" 'stage' "$@"
   }
 
   function __rapid__stage {
-    local -a args
-    local patch='^-p|--patch$'
-
-    if [[ "$1" =~ $patch ]]; then
-      args=("${@:2}")
-    else
-      args=("$@")
-    fi
-
-    __rapid_git_status
-    [[ $? -eq 0 ]] || return $?
-
-    local lines="$(__rapid_filter_git_status "$git_status" "$filter_unstaged")"
-    __rapid_query "$lines" "$args"
-
-    __rapid_prepare "true"
-    printf "$output"
-
-    if [[ "$1" =~ $patch ]]; then
-      git add --patch -- "${query[@]}"
-    else
-      git add -- "${query[@]}"
-    fi
+    __rapid_index_command 'git add' "$filter_unstaged" 'stage' "$@"
   }
 
   function __rapid__unstage {
-    __rapid_git_status
-    [[ $? -eq 0 ]] || return $?
-
-    local lines="$(__rapid_filter_git_status "$git_status" "$filter_staged")"
-    __rapid_query "$lines" "$@"
-
-    __rapid_prepare "true" "reset"
-    printf "$output"
-
-    git reset --quiet HEAD -- "${query[@]}"
+    __rapid_index_command 'git reset --quiet HEAD' "$filter_staged" 'reset' "$@"
   }
 
   function __rapid__drop {
-    __rapid_git_status
-    [[ $? -eq 0 ]] || return $?
-
-    local lines="$(__rapid_filter_git_status "$git_status" "$filter_unstaged")"
-    __rapid_query "$lines" "$args"
-
-    __rapid_prepare "true" "drop"
-    printf "$output"
-
-    git checkout -- "${query[@]}"
+    __rapid_index_command 'git checkout' "$filter_unstaged" 'drop' "$@"
   }
 
   function __rapid__remove {
-    __rapid_git_status
-    [[ $? -eq 0 ]] || return $?
-
-    local lines="$(__rapid_filter_git_status "$git_status" "$filter_untracked")"
-    __rapid_query "$lines" "$@"
-
-    __rapid_prepare "true" "drop"
-    printf "$output"
-
-    rm -rf -- "${query[@]}"
+    __rapid_index_command 'rm -rf' "$filter_untracked" 'drop' "$@"
   }
 
   function __rapid__diff {
-    local git_status="$(git status --porcelain)"
+    local filter="$filter_unstaged"
+    local cached='^--cached|--staged$'
 
-    if [[ "$1" == '-c' ]]; then
-      local staged='/^([MARC][ MD]|D[ M])/!d'
-      local stagedContent="$(sed -$sedE "$staged" <<< "$git_status")"
-      __rapid_query "$stagedContent" "${@:2}"
-
-      __rapid_prepare "false"
-
-      git diff --cached -- "${query[@]}"
-    else
-      local unstaged='/^[ MARC][MD]/!d'
-      local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
-      __rapid_query "$unstagedContent" "$@"
-
-      __rapid_prepare "false"
-
-      git diff -- "${query[@]}"
+    if [[ "$1" =~ $cached ]]; then
+      filter="$filter_staged"
     fi
+
+    __rapid_index_command 'git diff' "$filter" 'false' "$@"
   }
 
   function __rapid_status_of_type {
@@ -342,8 +299,7 @@ function rapid {
     # The other parameters are optional status replacements in the form of 'pattern' 'replacement'.
     local prefixes
     shift 4
-    while [[ $# -gt 0 ]]
-    do
+    while [[ $# -gt 0 ]]; do
       prefixes+="s/\t$1\t/\t$2\t/;"
       shift 2
     done
@@ -558,6 +514,8 @@ function rapid {
 
   __rapid_zsh && local -A query || local -a query
   query=()
+  local -a git_params
+  git_params=()
   local git_status
   local output
   local exit_status
