@@ -381,62 +381,94 @@ function rapid {
     return 1
   }
 
+  function __rapid_status_of_type {
+    local header=$1
+    local git_status=$2
+    local filter="/^$3/!d"
+    local color=$4
+
+    local lines="$(sed -$sedE "$filter" <<< "$git_status")"
+
+    if [[ -z "$lines" ]]; then
+      return
+    fi
+
+    # The other parameters are optional prefix replacements in the form of 'pattern' 'replacement'.
+    local prefixes
+    shift 4
+    while [[ $# -gt 0 ]]
+    do
+      prefixes+="s/\t$1\t/\t$2\t/;"
+      shift 2
+    done
+
+    local index_color=$fg_b_yellow
+    local colorize="s/^(.*)\t(.*)\t(.*)/$index_color\1$c_end\t$color\2$c_end\t$color\3$c_end/"
+    local order_fields='s/^(.*)\t(.*)\t(.*)/  \2 \1 \3/'
+
+    local formatted="$(
+      sed -$sedE '
+        # Put index between lines: <line> -> <index>\n<line>
+        {=}
+        ' <<< "$lines" | \
+      sed --silent -$sedE "
+        # <index>\n<status> <file> -> <index>\t<status> <file>
+        {N;s/\n/\t/}
+
+        # <index>\t<status> <file> -> (<index>)\t<status>\t<file>
+        {s/^([1-9][0-9]*)\t(..) (.*)/(\1)\t\2\t\3/}
+
+        # Replace status with text, colorize fields, reorder fields.
+        {$prefixes;$colorize;$order_fields;p}"
+      )"
+
+    printf "%s:\n\n%s\n\n" "$header" "$formatted"
+  }
+
   function __rapid__status {
+    # In bash we cannot store NULL characters in a variable. Go the extra mile and replace NULLs with \n.
+    # http://stackoverflow.com/q/6570531
+    # The pipefail option sets the exit code of the pipeline to the last program to exit non-zero or 0 if all succeed.
+    # http://unix.stackexchange.com/a/73180/72946
     local git_status
-    git_status="$(git status --porcelain)"
+    git_status="$(set -o pipefail; git status --porcelain -z | sed 's/\x0/\n/g')"
+
     [[ $? -eq 0 ]] || return $?
 
-    local prefixStaged="s/^M[MD ]/modified:   /;s/^A[MD ]/added:      /;s/^D[M ]/deleted:    /;s/^R[MD ]/renamed:    /; s/^C[MD ]/copied:     /"
-    local prefixUnstaged="s/^[MARC ]?M/modified:   /;s/^[MARC ]?D/deleted:    /"
-    local prefixUntracked="s/^\?\?/added:      /"
-    local prefixUnmerged="s/^UU/modified both:     /;s/^AA/added both:        /;s/^UA/added remote:      /;s/^AU/added local:       /;s/^DD/deleted both:      /;s/^UD/deleted remote:    /;s/^DU/deleted local:     /"
+    __rapid_status_of_type 'Index - staged files' \
+      "$git_status" \
+      '([MARC][ MD]|D[ M])' \
+      "$(git config --get-color color.status.changed "bold green")" \
+      'M[MD ]'    'modified:        ' \
+      'A[MD ]'    'added:           ' \
+      'D[M ]'     'deleted:         ' \
+      'R[MD ]'    'renamed:         ' \
+      'C[MD ]'    'copied:          '
 
-    local dyeLinenumbers="s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/"
-    local staged_color="$(git config --get-color color.status.added "bold red")"
-    local dyeStagedContent="s/^/$staged_color  /"
-    local unstaged_color="$(git config --get-color color.status.changed "bold green")"
-    local dyeUnstagedContent="s/^/$unstaged_color  /"
-    local untracked_color="$(git config --get-color color.status.untracked "bold blue")"
-    local dyeUntrackedContent="s/^/$untracked_color  /"
-    local dyeUnmergedContent="s/^/$fg_b_magenta  /"
+    __rapid_status_of_type 'Work tree - unstaged files' \
+      "$git_status" \
+      '[ MARC][MD]' \
+      "$(git config --get-color color.status.changed "bold green")" \
+      '[MARC ]?M' 'modified:        ' \
+      '[MARC ]?D' 'deleted:         '
 
-    local staged='/^([MARC][ MD]|D[ M])/!d'
-    local stagedContent="$(sed -$sedE "$staged" <<< "$git_status")"
-    local textForIndex
+    __rapid_status_of_type 'Untracked files' \
+      "$git_status" \
+      '\?\?' \
+      "$(git config --get-color color.status.untracked "bold blue")" \
+      '\?\?'      'untracked file:  '
 
-    if [[ -n "$stagedContent" ]]; then
-      local stagedFormattedContent="$(sed = <<< "$stagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixStaged;$dyeStagedContent;$dyeLinenumbers;p")"
-      textForIndex="Index - staged content:\r\n\r\n${stagedFormattedContent}\r\n\r\n"
-    fi
-
-    local unstaged='/^[ MARC][MD]/!d'
-    local unstagedContent="$(sed "$unstaged" <<< "$git_status")"
-    local textForWorkTree
-
-    if [[ -n "$unstagedContent" ]]; then
-      local unstagedFormattedContent="$(sed = <<< "$unstagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnstaged;$dyeUnstagedContent;$dyeLinenumbers;p")"
-      textForWorkTree="Work tree - unstaged content:\r\n\r\n$unstagedFormattedContent\r\n\r\n"
-    fi
-
-    local untracked='/^??/ !d'
-    local untrackedContent="$(sed "$untracked" <<< "$git_status")"
-    local textForUntracked
-
-    if [[ -n "$untrackedContent" ]]; then
-      local untrackedFormattedContent="$(sed = <<< "$untrackedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUntracked;$dyeUntrackedContent;$dyeLinenumbers;p")"
-      textForUntracked="Untracked content:\r\n\r\n$untrackedFormattedContent\r\n\r\n"
-    fi
-
-    local unmerged='/^(D[DU]|A[AU]|U[ADU])/!d'
-    local unmergedContent="$(sed -$sedE "$unmerged" <<< "$git_status")"
-    local textForUnmerged
-
-    if [[ -n "$unmergedContent" ]]; then
-      local unmergedFormattedContent="$(sed = <<< "$unmergedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnmerged;$dyeUnmergedContent;$dyeLinenumbers;p")"
-      textForUnmerged="Unmerged content:\r\n\r\n$unmergedFormattedContent\r\n\r\n"
-    fi
-
-    printf "${textForIndex}${textForWorkTree}${textForUntracked}${textForUnmerged}"
+    __rapid_status_of_type 'Unmerged files' \
+      "$git_status" \
+      '(D[DU]|A[AU]|U[ADU])' \
+      "$fg_b_magenta" \
+      'UU'        'both modified:   ' \
+      'AA'        'both added:      ' \
+      'UA'        'added by them:   ' \
+      'AU'        'added by us:     ' \
+      'DD'        'both deleted:    ' \
+      'UD'        'deleted by them: ' \
+      'DU'        'deleted by us:   '
   }
 
   function __rapid__branch {
