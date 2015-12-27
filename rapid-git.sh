@@ -229,6 +229,13 @@ function rapid {
         query[$key]="'$git_root/$file'"
       fi
     done
+
+    printf "$output"
+
+    if [[ "${#query[@]}" -eq 0 ]]; then
+      # Nothing left likely means an error, e.g. user entered non-existing index.
+      return 1
+    fi
   }
 
   # Commands for the index.
@@ -248,11 +255,11 @@ function rapid {
     __rapid_query "$lines" "${args[@]}"
 
     __rapid_prepare "$mark_option"
-    printf "$output"
-
-    if [[ ${#query[@]} -ne 0 ]]; then
-      sh -c ""$git_command" "${git_params[@]}" -- "${query[@]}""
+    if [[ $? -ne 0 ]]; then
+      return 1
     fi
+
+    sh -c ""$git_command" "${git_params[@]}" -- "${query[@]}""
   }
 
   function __rapid__track {
