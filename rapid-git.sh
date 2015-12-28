@@ -230,11 +230,12 @@ function rapid {
         # Remove key.
         __rapid_zsh && unset "query[$key]" || unset query[$key]
       else
+        local file="${query[$key]}"
         # Remove git status prefix.
-        local file=$(sed "s/^...//" <<< "${query[$key]}")
+        file="${file:3}"
         [[ "$mark_option" != "false" ]] && output+="$(__rapid_get_mark "${query[$key]}" "$mark_option")$file\n"
 
-        query[$key]="'$git_root/$file'"
+        query[$key]="$git_root/$file"
       fi
     done
 
@@ -267,8 +268,35 @@ function rapid {
       return 1
     fi
 
-    git_command=""$git_command" "${git_params[@]}" -- "${query[@]}""
-    sh -c "$git_command"
+    local -a command
+    command=()
+    if ! __rapid_zsh; then
+      # Split git command based on spaces.
+      IFS=' ' command=($git_command)
+    else
+      # zsh doesn't do word splitting by default, but $=var enables it.
+      command=($=git_command)
+    fi
+
+    local -a files
+    if ! __rapid_zsh; then
+      # In bash, we need the array values that are assigned.
+      files=("${query[@]}")
+    else
+      # In zsh, we need an array of ordered values of the associative array.
+      files=(${(vo)query})
+    fi
+
+    for git_param in "${git_params[@]}"; do
+      command+=("$git_param")
+    done
+
+    command+=('--')
+    for file in "${files[@]}"; do
+      command+=("$file")
+    done
+
+    "${command[@]}"
   }
 
   function __rapid__track {
