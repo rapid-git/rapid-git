@@ -267,7 +267,8 @@ function rapid {
       return 1
     fi
 
-    sh -c ""$git_command" "${git_params[@]}" -- "${query[@]}""
+    git_command=""$git_command" "${git_params[@]}" -- "${query[@]}""
+    sh -c "$git_command"
   }
 
   function __rapid__track {
