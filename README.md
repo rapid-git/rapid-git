@@ -26,6 +26,8 @@ Also some pointers:
 
 ## Commands
 
+### Specifying Indexes
+
 Some commands only depend on indexes while other also depend on ranges. Indexes always refer to the position of a file, folder or branch inside the output lists of `git status` and `git branch`. The index count starts with **1** not **0**. Ranges can be defined using index and dots. There are the following schemata available:
 
 | schema / argument  | description                                    |
@@ -37,70 +39,84 @@ Some commands only depend on indexes while other also depend on ranges. Indexes 
 
 Commands targeting files and folders allow multiple arguments to be passed.
 
-### Overview
+### Index Commands
 
-- rapid status
-- rapid track
-- rapid stage [-p | --patch]
-- rapid unstage
-- rapid drop
-- rapid remove
-- rapid diff [-c]
-- rapid branch [-d | -D | -a | -r]
-- rapid checkout
-- rapid merge
-- rapid rebase [-c | --continue | -a | --abort]
+These commands relate to the git index and the working copy.
+
+- [rapid status](#rapid-status)
+- [rapid track](#rapid-track)
+- [rapid stage](#rapid-stage)
+- [rapid unstage](#rapid-unstage)
+- [rapid drop](#rapid-drop)
+- [rapid remove](#rapid-remove)
+- [rapid diff](#rapid-diff)
+
+### Branch Commands
+
+These commands relate to git branches.
+
+- [rapid branch [-d | -D | -a | -r]](#rapid-branch)
+- [rapid checkout](#rapid-checkout)
+- [rapid merge](#rapid-merge)
+- [rapid rebase [-c | --continue | -a | --abort]](#rapid-rebase)
+
+---
 
 ### rapid status
 
-- Show staged content suffixed by index
-- Show unstaged content suffixed by index
-- Show unstaged content suffixed by index
-- Show unmerged content suffixed by index (no other rapid command works with these indexes yet)
+- Show **staged files** with index
+- Show **unstaged files** with index
+- Show **untracked files** with index
+- Show **unmerged files** with index *(no other rapid command works with these indexes yet)*
 
 ### rapid track
 
-- Track one or multiple files and folders by index or range
-- Indexes based on untracked files and folders of `git status`
+- Track one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `git add`, allows passing arbitrary options
+- Indexes based on **untracked files** and folders of `rapid status`
 
 ### rapid stage
 
-- Stage one or multiple files by index or range
-- Indexes are based on unstaged files of `git status`
-- Use the **-p | --patch** just like you use it with `git add`
+- Stage one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `git add`, allows passing arbitrary options (e.g. `--patch`)
+- Indexes are based on **unstaged files** of `rapid status`
 
 ### rapid unstage
 
-- Unstage one or multiple files by index or range
-- Indexes are based on staged files of `git status`
+- Unstage one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `git reset HEAD`, allows passing arbitrary options (e.g. `--patch`)
+- Indexes are based on **staged files** of `rapid status`
 
 ### rapid drop
 
-- Drop not yet commited changes of one or multiple files by index or range
-- Indexes are based on unstaged files of `git status`
+- Drop unstaged changes of one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `git checkout`, allows passing arbitrary options (e.g. `--patch`)
+- Indexes are based on **unstaged files** of `rapid status`
 
 ### rapid remove
 
-- Remove one or multiple files and folders by index or range
-- Indexes are based on untracked files and folders of `git status`
-- This command tries to remove sub-level files and folders too, when trying to remove a folder
+- Remove one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `rm -rf`, allows passing arbitrary `rm` options
+- Indexes are based on **untracked files** of `rapid status`
+- When removing a directory, this command tries to remove sub-level files and directories, too
 
 ### rapid diff
 
 - Show the diff of one or multiple files
-- Indexes are based on unstaged files of `git status`, when using no additional option
-- Indexes are based on staged files of `git status`, when using the option **-c**
+- Equivalent to `git diff`, allows passing arbitrary options options (e.g. `--word-diff`)
+- Indexes are based on **unstaged files** of `rapid status` when using no additional option
+- Indexes are based on **staged files** of `rapid status` when using `--cached` or `--staged` as the first option
 
 ### rapid branch
 
 - Show all local branches
 - Mark the current branch
 - Display the index of each branch
-- Show all remote branches by using the option **-r**
-- Show all branches by using the option **-a**
-- Delete a branch by using the option **-d**
-- Force-delete a branch by using the option **-D**
-- Using the options **-r**, **-a**, **-d** and **-D** requires to pass a branch along by using its index
+- Show all remote branches by using the option `-r`
+- Show all branches by using the option `-a`
+- Delete a branch by using the option `-d`
+- Force-delete a branch by using the option `-D`
+- Using the options `-r`, `-a`, `-d` and `-D` requires to pass a branch along by using its index
 - Indexes are based on `git branch | rapid branch`
 
 ### rapid checkout
@@ -117,8 +133,8 @@ Commands targeting files and folders allow multiple arguments to be passed.
 
 - Rebase a branch by using its index
 - Indexes are based on `git branch | rapid branch`
-- Continue rebasing by using the option **-c | --continue**
-- Abort rebasing by using the option **-a | --abort**
+- Continue rebasing by using the option `-c | --continue`
+- Abort rebasing by using the option `-a | --abort`
 
 ## Default aliases
 
