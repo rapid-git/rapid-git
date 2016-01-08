@@ -2,42 +2,55 @@
 
 ![rapid-git Demo](https://raw.githubusercontent.com/agross/rapid-git/master/demo.gif)
 
-It provides multiple functions, which aim to use git in a more efficient way. To do that, rapid-git enables you to interact with files and branches using numbers. Each number represent the position/index of a file or branch inside a list like `git status` and `git branch`. It is also possible to define ranges using numbers and dots, when interacting with files.
+rapid-git provides shortcuts for often-used git commands which aim to make your daily git use more efficient by typing less.
 
-The concept behind rapid-git was introduced by [Alexander Groß](https://github.com/agross) in his repository [git_shizzle](https://github.com/agross/git_shizzle). In contrast to this repository, which uses shell/bash, he implemented his project using Ruby. If you are interested, please have a look at his project too.
+rapid-git enables you to interact with files and branches using numbers (called indexes). Indexes represent the files that `git status` or branches that `git branch` prints on the screen. When interacting with files you may define ranges using the [numbers and dots notation](#specifying-indexes).
+
+The concept behind rapid-git was introduced by [Alexander Groß](https://github.com/agross) in his repository [git_shizzle](https://github.com/agross/git_shizzle). In contrast to this repository, which uses shell, he implemented his project using Ruby. If you are interested, please have a look at his project too.
 
 ## Prerequisites and installation
 
-There are only 2 requisites worth mentioning. Firstly, your bash version needs to equal or be above v4.0.0. Use the command `bash --version` to read out yours. Secondly, use Cygwin on Windows or use a Mac. rapid-git uses the same colors that are configured for standard git commands.
+There are two prerequisites worth mentioning:
 
-Now lets start with adding rapid-git:
+* Your bash version needs to be at least v4.0.0. Use the command `bash --version` to check yours.
+* If you use zsh, be aware that we tested the script with v5.0.2 and v5.1.1. Use `zsh --version` to check yours.
 
-1. Start with cloning this repository: 
-    <pre>https://github.com/philiptober/rapid-git.git</pre>
-2. Add rapid-git.sh to *.bash_profile* or *.profile* like:
-    <pre>source path/to/this/file/rapid-git.sh</pre>
-3. At this point rapid-git should already work, but you may also add alias.rapid-git.sh to get some default aliases. Simply mirror the second step again to do that
+Let's install rapid-git:
 
-Also some pointers:
-* If neither *.bash_profile* nor *.profile* exist, create them yourself
-* Using Cygwin, *.profile* needs to be called via `cygwin/bin/sh.exe --login -i` or it will not be applied
-* There is a certain trick for Windows users, who wish to create files such as *.profile* via the Windows Explorer. When typing the file name, do it like that without defining any file type:
-    <pre>.profile.</pre>
+1. Start with cloning this repository:
+   ```bash
+   git clone https://github.com/philiptober/rapid-git.git
+   ```
+
+1. Add *rapid-git.sh* to *.bashrc* or *.zshrc*:
+   ```bash
+   source path/to/rapid-git.sh
+  ```
+
+1. At this point rapid-git should already work, but you may also add *alias.rapid-git.sh* to get some default aliases.
+   ```bash
+   source path/to/alias.rapid-git.sh
+   ```
+
+**Note for Windows users:** There is a certain trick for Windows users, who wish to create files such as *.bashrc* via the Windows Explorer. When typing the file name, do it as follows without defining a file extension: `.bashrc.`
 
 ## Commands
 
 ### Specifying Indexes
 
-Some commands only depend on indexes while other also depend on ranges. Indexes always refer to the position of a file, folder or branch inside the output lists of `git status` and `git branch`. The index count starts with **1** not **0**. Ranges can be defined using index and dots. There are the following schemata available:
+Indexes always refer to the position of a file, directory or branch in the output of `git status` and `git branch`. Indexes start at **1** not at **0**. Ranges can be defined using numbers and dots notation. There are the following notations available:
 
-| schema / argument  | description                                    |
-| ------------------ |:---------------------------------------------- |
-| `..`               | select all list entries                        |
-| `..#` like `..5`   | select the first entry up to the fifth one     |
-| `#..` like `3..`   | select the third entry up to the last one      |
-| `#..#` like `4..7` | select the forth entry up to the seventh entry |
+| notation           | description                                     |
+| :----------------- |:----------------------------------------------- |
+| `#`                | select a single list entry                      |
+| `..`               | select all list entries                         |
+| `..#` e.g. `..5`   | select the first entry up to the fifth one      |
+| `#..` e.g. `3..`   | select the third entry up to the last one       |
+| `#..#` e.g. `4..7` | select the fourth entry up to the seventh entry |
 
-Commands targeting files and folders allow multiple arguments to be passed.
+* [Index commands](#index-commands) support indexes or ranges.
+* [Index commands](#index-commands) allow multiple arguments to be passed.
+* [Branch commands](#branch-commands) only support a single index.
 
 ### Index Commands
 
@@ -128,7 +141,7 @@ These commands relate to git branches.
 
 - Merge a branch by using its index
 - Indexes are based on `git branch | rapid branch`
- 
+
 ### rapid rebase
 
 - Rebase a branch by using its index
@@ -152,22 +165,19 @@ These commands relate to git branches.
 | `rme`         | `rapid merge`       |
 | `rre`         | `rapid rebase`      |
 
-## Additional Information
+## Authors
 
-### Author
+### Philip Tober
 
-**Philip Tober**
-
-+ [Github](https://github.com/philiptober)
++ [GitHub](https://github.com/philiptober)
 + [Twitter](https://twitter.com/philiptober)
-+ [Wordpress](http://philiptober.wordpress.com/)
++ [Blog](http://philiptober.wordpress.com/)
 
-### Credits
+### Alexander Groß
 
-Thank you [Alexander Groß](https://github.com/agross) for creating [git_shizzle](https://github.com/agross/git_shizzle). It made working with git a lot easier.
++ [GitHub](https://github.com/agross)
++ [Twitter](https://twitter.com/agross)
++ [Blog](http://therightstuff.de/)
 
-### Copyright
-Copyright © 2015 [Philip Tober](https://twitter.com/philiptober).
-
-### License 
-**rapid-git** is under MIT license - http://www.opensource.org/licenses/mit-license.php
+## License
+rapid-git is under MIT license - http://www.opensource.org/licenses/mit-license.php
