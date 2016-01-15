@@ -1,105 +1,135 @@
 # rapid-git
 
-It provides multiple functions, which aim to use git in a more efficient way. To do that, rapid-git enables you to interact with files and branches using numbers. Each number represent the position/index of a file or branch inside a list like `git status` and `git branch`. It is also possible to define ranges using numbers and dots, when interacting with files.
+![rapid-git Demo](https://raw.githubusercontent.com/agross/rapid-git/master/demo.gif)
 
-The concept behind rapid-git was introduced by [Alexander Groß](https://github.com/agross) in his repository [git_shizzle](https://github.com/agross/git_shizzle). In contrast to this repository, which uses shell/bash, he implemented his project using Ruby. If you are interested, please have a look at his project too.
+rapid-git provides shortcuts for often-used git commands which aim to make your daily git use more efficient by typing less.
+
+rapid-git enables you to interact with files and branches using numbers (called indexes). Indexes represent the files that `git status` or branches that `git branch` prints on the screen. When interacting with files you may define ranges using the [numbers and dots notation](#specifying-indexes).
+
+The concept behind rapid-git was introduced by [Alexander Groß](https://github.com/agross) in his repository [git_shizzle](https://github.com/agross/git_shizzle). In contrast to this repository, which uses shell, he implemented his project using Ruby. If you are interested, please have a look at his project too.
 
 ## Prerequisites and installation
 
-There are only 2 requisites worth mentioning. Firstly, your bash version needs to equal or be above v4.0.0. Use the command `bash --version` to read out yours. Secondly, use Cygwin on Windows or use a Mac. rapid-git is dependent on escaped color-codes and currently there are only xterm color-codes as well as cygwin color-codes included. If you want to use it with something else like git on Linux or msysgit on Windows, you have to modify colors.sh beforehand.
+There are two prerequisites worth mentioning:
 
-Now lets start with adding rapid-git:
+* Your bash version needs to be at least v4.0.0. Use the command `bash --version` to check yours.
+* If you use zsh, be aware that we tested the script with v5.0.2 and v5.1.1. Use `zsh --version` to check yours.
 
-1. Start with cloning this repository: 
-    <pre>https://github.com/philiptober/rapid-git.git</pre>
-2. Add colors.sh to *.bash_profile* or *.profile* like:
-    <pre>source path/to/this/file/colors.sh</pre>
-3. Repeat the second step for rapid-git.sh
-4. At this point rapid-git should already work, but you may also add alias.rapid-git.sh to get some default aliases. Simply mirror the second step again to do that
+Let's install rapid-git:
 
-Also some pointers:
-* If neither *.bash_profile* nor *.profile* exist, create them yourself
-* Using Cygwin, *.profile* needs to be called via `cygwin/bin/sh.exe --login -i` or it will not be applied
-* There is a certain trick for Windows users, who wish to create files such as *.profile* via the Windows Explorer. When typing the file name, do it like that without defining any file type:
-    <pre>.profile.</pre>
+1. Start with cloning this repository:
+   ```bash
+   git clone https://github.com/philiptober/rapid-git.git
+   ```
+
+1. Add *rapid-git.sh* to *.bashrc* or *.zshrc*:
+   ```bash
+   source path/to/rapid-git.sh
+  ```
+
+1. At this point rapid-git should already work, but you may also add *alias.rapid-git.sh* to get some default aliases.
+   ```bash
+   source path/to/alias.rapid-git.sh
+   ```
+
+**Note for Windows users:** There is a certain trick for Windows users, who wish to create files such as *.bashrc* via the Windows Explorer. When typing the file name, do it as follows without defining a file extension: `.bashrc.`
 
 ## Commands
 
-Some commands only depend on indexes while other also depend on ranges. Indexes always refer to the position of a file, folder or branch inside the output lists of `git status` and `git branch`. The index count starts with **1** not **0**. Ranges can be defined using index and dots. There are the following schemata available:
+### Specifying Indexes
 
-| schema / argument  | description                                    |
-| ------------------ |:---------------------------------------------- |
-| `..`               | select all list entries                        |
-| `..#` like `..5`   | select the first entry up to the fifth one     |
-| `#..` like `3..`   | select the third entry up to the last one      |
-| `#..#` like `4..7` | select the forth entry up to the seventh entry |
+Indexes always refer to the position of a file, directory or branch in the output of `git status` and `git branch`. Indexes start at **1** not at **0**. Ranges can be defined using numbers and dots notation. There are the following notations available:
 
-Commands targeting files and folders allow multiple arguments to be passed.
+| notation           | description                                     |
+| :----------------- |:----------------------------------------------- |
+| `#`                | select a single list entry                      |
+| `..`               | select all list entries                         |
+| `..#` e.g. `..5`   | select the first entry up to the fifth one      |
+| `#..` e.g. `3..`   | select the third entry up to the last one       |
+| `#..#` e.g. `4..7` | select the fourth entry up to the seventh entry |
 
-### Overview
+* [Index commands](#index-commands) support indexes or ranges.
+* [Index commands](#index-commands) allow multiple arguments to be passed.
+* [Branch commands](#branch-commands) only support a single index.
 
-- rapid status
-- rapid track
-- rapid stage [-p | --patch]
-- rapid unstage
-- rapid drop
-- rapid remove
-- rapid diff [-c]
-- rapid branch [-d | -D | -a | -r]
-- rapid checkout
-- rapid merge
-- rapid rebase [-c | --continue | -a | --abort]
+### Index Commands
+
+These commands relate to the git index and the working copy.
+
+- [rapid status](#rapid-status)
+- [rapid track](#rapid-track)
+- [rapid stage](#rapid-stage)
+- [rapid unstage](#rapid-unstage)
+- [rapid drop](#rapid-drop)
+- [rapid remove](#rapid-remove)
+- [rapid diff](#rapid-diff)
+
+### Branch Commands
+
+These commands relate to git branches.
+
+- [rapid branch [-d | -D | -a | -r]](#rapid-branch)
+- [rapid checkout](#rapid-checkout)
+- [rapid merge](#rapid-merge)
+- [rapid rebase [-c | --continue | -a | --abort]](#rapid-rebase)
+
+---
 
 ### rapid status
 
-- Show staged content suffixed by index
-- Show unstaged content suffixed by index
-- Show unstaged content suffixed by index
-- Show unmerged content suffixed by index (no other rapid command works with these indexes yet)
+- Show **staged files** with index
+- Show **unstaged files** with index
+- Show **untracked files** with index
+- Show **unmerged files** with index *(no other rapid command works with these indexes yet)*
 
 ### rapid track
 
-- Track one or multiple files and folders by index or range
-- Indexes based on untracked files and folders of `git status`
+- Track one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `git add`, allows passing arbitrary options
+- Indexes based on **untracked files** and folders of `rapid status`
 
 ### rapid stage
 
-- Stage one or multiple files by index or range
-- Indexes are based on unstaged files of `git status`
-- Use the **-p | --patch** just like you use it with `git add`
+- Stage one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `git add`, allows passing arbitrary options (e.g. `--patch`)
+- Indexes are based on **unstaged files** of `rapid status`
 
 ### rapid unstage
 
-- Unstage one or multiple files by index or range
-- Indexes are based on staged files of `git status`
+- Unstage one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `git reset HEAD`, allows passing arbitrary options (e.g. `--patch`)
+- Indexes are based on **staged files** of `rapid status`
 
 ### rapid drop
 
-- Drop not yet commited changes of one or multiple files by index or range
-- Indexes are based on unstaged files of `git status`
+- Drop unstaged changes of one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `git checkout`, allows passing arbitrary options (e.g. `--patch`)
+- Indexes are based on **unstaged files** of `rapid status`
 
 ### rapid remove
 
-- Remove one or multiple files and folders by index or range
-- Indexes are based on untracked files and folders of `git status`
-- This command tries to remove sub-level files and folders too, when trying to remove a folder
+- Remove one or multiple files by [index or range](#specifying-indexes)
+- Equivalent to `rm -rf`, allows passing arbitrary `rm` options
+- Indexes are based on **untracked files** of `rapid status`
+- When removing a directory, this command tries to remove sub-level files and directories, too
 
 ### rapid diff
 
 - Show the diff of one or multiple files
-- Indexes are based on unstaged files of `git status`, when using no additional option
-- Indexes are based on staged files of `git status`, when using the option **-c**
+- Equivalent to `git diff`, allows passing arbitrary options options (e.g. `--word-diff`)
+- Indexes are based on **unstaged files** of `rapid status` when using no additional option
+- Indexes are based on **staged files** of `rapid status` when using `--cached` or `--staged` as the first option
 
 ### rapid branch
 
 - Show all local branches
 - Mark the current branch
 - Display the index of each branch
-- Show all remote branches by using the option **-r**
-- Show all branches by using the option **-a**
-- Delete a branch by using the option **-d**
-- Force-delete a branch by using the option **-D**
-- Using the options **-r**, **-a**, **-d** and **-D** requires to pass a branch along by using its index
+- Show all remote branches by using the option `-r`
+- Show all branches by using the option `-a`
+- Delete a branch by using the option `-d`
+- Force-delete a branch by using the option `-D`
+- Using the options `-r`, `-a`, `-d` and `-D` requires to pass a branch along by using its index
 - Indexes are based on `git branch | rapid branch`
 
 ### rapid checkout
@@ -111,13 +141,13 @@ Commands targeting files and folders allow multiple arguments to be passed.
 
 - Merge a branch by using its index
 - Indexes are based on `git branch | rapid branch`
- 
+
 ### rapid rebase
 
 - Rebase a branch by using its index
 - Indexes are based on `git branch | rapid branch`
-- Continue rebasing by using the option **-c | --continue**
-- Abort rebasing by using the option **-a | --abort**
+- Continue rebasing by using the option `-c | --continue`
+- Abort rebasing by using the option `-a | --abort`
 
 ## Default aliases
 
@@ -135,22 +165,19 @@ Commands targeting files and folders allow multiple arguments to be passed.
 | `rme`         | `rapid merge`       |
 | `rre`         | `rapid rebase`      |
 
-## Additional Information
+## Authors
 
-### Author
+### Philip Tober
 
-**Philip Tober**
-
-+ [Github](https://github.com/philiptober)
++ [GitHub](https://github.com/philiptober)
 + [Twitter](https://twitter.com/philiptober)
-+ [Wordpress](http://philiptober.wordpress.com/)
++ [Blog](http://philiptober.wordpress.com/)
 
-### Credits
+### Alexander Groß
 
-Thank you [Alexander Groß](https://github.com/agross) for creating [git_shizzle](https://github.com/agross/git_shizzle). It made working with git a lot easier.
++ [GitHub](https://github.com/agross)
++ [Twitter](https://twitter.com/agross)
++ [Blog](http://therightstuff.de/)
 
-### Copyright
-Copyright © 2015 [Philip Tober](https://twitter.com/philiptober).
-
-### License 
-**rapid-git** is under MIT license - http://www.opensource.org/licenses/mit-license.php
+## License
+rapid-git is under MIT license - http://www.opensource.org/licenses/mit-license.php

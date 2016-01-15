@@ -1,453 +1,582 @@
 #!/bin/sh
 
-# temporary hack until an installer function is written
-if [ $(uname -s) = 'Darwin' ]; then
-	sedE='E'
-else
-	sedE='r'
-fi
-
 function rapid {
 
-	local query=()
-	local output
+  # Temporary hack until an installer function is written.
+  local sedE='r'
+  if [[ "$(uname -s)" == 'Darwin' ]]; then
+    sedE='E'
+  fi
 
-	function __rapid__query {
-		local target=$1
-		local getLine=' !d'
-		local counter
-		local end
-		local entry
+  local function_prefix='__rapid_'
+  local command_prefix="${function_prefix}_"
+  local -a rapid_functions
 
-  	for var in ${@:2}; do
-			count=""
-			end=""
+  local filter_untracked='\?\?'
+  local filter_unstaged='[ MARC][MD]'
+  local filter_staged='([MARC][ MD]|D[ M])'
+  local filter_unmerged='(D[DU]|A[AU]|U[ADU])'
 
-			if [[ $var =~ ^[1-9][0-9]*\.\.[1-9][0-9]*$ ]]; then
-				counter=$(sed 's/\.\.[1-9][0-9]*$//g' <<< "$var")
-				end=$(sed 's/^[1-9][0-9]*\.\.//g' <<< "$var")
+  # Colors.
+  local c_end
+  local fg_black fg_red fg_green fg_yellow fg_blue fg_magenta fg_cyan fg_white
+  local fg_b_black fg_b_red fg_b_green fg_b_yellow fg_b_blue fg_b_magenta fg_b_cyan fg_b_white
 
-			elif [[ $var =~ ^[1-9][0-9]*\.\.$ ]];then
-				counter=$(sed 's/\.\.$//g' <<< "$var")
-				end=$(sed -n '$=' <<< "$target")
+  function __rapid_init_colors {
+    # No colors when we're part of a pipeline or output is being redirected.
+    [[ -t 1 ]] || return
 
-			elif [[ $var =~ ^\.\.[1-9][0-9]*$ ]];then
-				counter=1
-				end=$(sed 's/^\.\.//g' <<< "$var")
+    # Commented colors are not used. Speeds up things a bit on Windows where process creation is expensive.
+    c_end="$(git config --get-color "" "reset")"
 
-			elif [[ $var =~ ^[1-9][0-9]*$ ]]; then
-				counter=$var
-				end=$var
+    # fg_black="$(git config --get-color "" "black")"
+    # fg_red="$(git config --get-color "" "red")"
+    # fg_green="$(git config --get-color "" "green")"
+    fg_yellow="$(git config --get-color "" "yellow")"
+    # fg_blue="$(git config --get-color "" "blue")"
+    # fg_magenta="$(git config --get-color "" "magenta")"
+    fg_cyan="$(git config --get-color "" "cyan")"
+    #fg_white="$(git config --get-color "" "white")"
 
-			elif [[ $var =~ ^\.\.$ ]];then
-				counter=1
-				end=$(sed -n '$=' <<< "$target")
+    # fg_b_black="$(git config --get-color "" "bold black")"
+    fg_b_red="$(git config --get-color "" "bold red")"
+    # fg_b_green="$(git config --get-color "" "bold green")"
+    fg_b_yellow="$(git config --get-color "" "bold yellow")"
+    # fg_b_blue="$(git config --get-color "" "bold blue")"
+    fg_b_magenta="$(git config --get-color "" "bold magenta")"
+    fg_b_cyan="$(git config --get-color "" "bold cyan")"
+    # fg_b_white="$(git config --get-color "" "bold white")"
+  }
 
-			fi
+  function __rapid_zsh {
+    [[ -n "$ZSH_VERSION" ]]
+  }
 
-			until [ ! $counter -le $end ]; do
-				entry=$(sed "$counter$getLine" <<< "$target")
+  function __rapid_functions {
+    local function_prefix=$1
 
-				if [[ -z "$entry" ]]; then
-					query[$counter]="??"
+    if ! __rapid_zsh; then
+      # Bash uses declare to return all functions.
+      IFS=$'\n'
+      rapid_functions=($(declare -F | cut --delimiter=' ' --fields=3 | /usr/bin/grep "$function_prefix"))
+    else
+      # zsh has a function associative array.
+      local -a all_functions
+      all_functions=(${(ok)functions})
+      rapid_functions=(${${(M)all_functions:#$function_prefix*}})
+    fi
+  }
 
-				elif [[ -z "${query[$counter]}" ]]; then
-					query[$counter]="$entry"
+  function __rapid_cleanup {
+    __rapid_functions "$function_prefix"
 
-				fi
-				counter=$(expr $counter + 1)
-			done
-		done
-	}
+    for fun in $rapid_functions; do
+      unset -f "$fun"
+    done
+  }
 
-	function __rapid__get_mark {
-		local entry=$1
-		local markOption=$2
-		local mark
+  function __rapid_command_not_found {
+    local requested_command=$1
+    local known_commands
 
-		if [[ "$markOption" == "reset" ]]; then
-			if [[ "$entry" =~ ^A ]]; then
-				mark="\t${fg_yellow}<${c_end} "
+    __rapid_functions "$command_prefix"
 
-			elif [[ "$entry" =~ ^R ]]; then
-				mark="\t${fg_yellow}~${c_end} "
+    if ! __rapid_zsh; then
+      known_commands="$(printf '  %s\n' "${rapid_functions[@]/#$command_prefix/}")"
+    else
+      known_commands="$(print -l ${rapid_functions/#$command_prefix/  })"
+    fi
 
-			elif [[ "$entry" =~ ^[MDCU] ]]; then
-				mark="\t${fg_yellow}-${c_end} "
+    echo -e "Unknown command: ${1:-none}\n\nAvailable commands:\n$known_commands" 1>&2
+    return 1
+  }
 
-			fi
+  function __rapid_git_status {
+    if __rapid_zsh; then
+      # The pipefail option is not available on zsh 5.0.2, use two separate invocations. At least we can store NULLs in variables. Replace them regardless.
+      local git_z_status
+      git_z_status="$(git status --porcelain -z)"
+      [[ $? -eq 0 ]] || return $?
 
-		elif [[ "$markOption" == "drop" ]]; then
-			if [[ "$entry" =~ ^\?\? ]]; then
-				mark="\t${fg_cyan}-${c_end} "
+      git_status="$(sed 's/\x0/\n/g' <<< "$git_z_status")"
+      return $?
+    fi
 
-			elif [[ "$entry" =~ ^[MADRCU\ ][MADRCU] ]]; then
-				mark="\t${fg_cyan}~${c_end} "
+    # In bash we cannot store NULL characters in a variable. Go the extra mile and replace NULLs with \n.
+    # http://stackoverflow.com/q/6570531
+    git_status="$(set -o pipefail; git status --porcelain -z | sed 's/\x0/\n/g')"
+  }
 
-			fi
+  function __rapid_filter_git_status {
+    local git_status=$1
+    local filter="/^$2/!d"
 
-		else
-			if [[ "$entry" =~ ^\?\? ]]; then
-				mark="\t${fg_yellow}>${c_end} "
+    printf "%s" "$(sed -$sedE "$filter" <<< "$git_status")"
+  }
 
-			elif [[ "$entry" =~ ^[MADRCU\ ]R ]]; then
-				mark="\t${fg_yellow}~${c_end} "
+  function __rapid_query {
+    local target=$1
 
-			elif [[ "$entry" =~ ^[MADRCU\ ][MDCU] ]]; then
-				mark="\t${fg_yellow}+${c_end} "
+    # Process the rest of the parameters either as indexes or as git params.
+    shift
+    while [[ $# -gt 0 ]]; do
+      local var=$1
+      local index=
+      local end=
 
-			fi
-		fi
+      if [[ $var =~ ^[1-9][0-9]*\.\.[1-9][0-9]*$ ]]; then
+        index="$(sed 's/\.\.[1-9][0-9]*$//g' <<< "$var")"
+        end="$(sed 's/^[1-9][0-9]*\.\.//g' <<< "$var")"
 
-		echo -e "$mark"
-	}
+      elif [[ $var =~ ^[1-9][0-9]*\.\.$ ]]; then
+        index="$(sed 's/\.\.$//g' <<< "$var")"
+        end="$(sed -n '$=' <<< "$target")"
 
-	function __rapid__prepare {
-		local out=$1
-		local markOption=$2
-		local path=$(git rev-parse --show-toplevel)
-		local format='s/^...//;s/"// g;s/ -> / / g'
-		local formattedEntry
-		local output
+      elif [[ $var =~ ^\.\.[1-9][0-9]*$ ]]; then
+        index=1
+        end="$(sed 's/^\.\.//g' <<< "$var")"
 
-		for entry in "${!query[@]}"; do
-			if [[ "${query[$entry]}" == "??" ]]; then
-				[[ "$out" == "true" ]] && output+="\t${fg_b_red}?$c_end Nothing on index $entry.\r\n"
-				unset query[$entry]
+      elif [[ $var =~ ^[1-9][0-9]*$ ]]; then
+        index=$var
+        end=$var
 
-			else
-				formattedEntry=$(sed "$format" <<< "${query[$entry]}")
-				[[ "$out" == "true" ]] && output+="$(__rapid__get_mark "${query[$entry]}" "$markOption")$formattedEntry\r\n"
-				query[$entry]="$path/$formattedEntry"
+      elif [[ $var =~ '^\.\.$' ]]; then
+        index=1
+        end="$(sed -n '$=' <<< "$target")"
+      else
+        git_params+=("$var")
 
-			fi
-		done
+        # Make sure the while loop below isn't entered.
+        index=1
+        end=$((index - 1))
+      fi
 
-		printf "$output"
-	}
+      while [[ $index -le $end ]]; do
+        local file_status="$(sed "$index!d" <<< "$target")"
+
+        if [[ -z "$file_status" ]]; then
+          query[$index]="??"
+        elif [[ -z "${query[$index]}" ]]; then
+          query[$index]="$file_status"
+        fi
+
+        index=$((index + 1))
+      done
+
+      shift
+    done
+  }
+
+  function __rapid_get_mark {
+    local entry=$1
+    local mark_option=$2
+    local mark
+    local untracked='^\?\?'
+
+    if [[ "$mark_option" == "reset" ]]; then
+      if [[ "$entry" =~ ^A ]]; then
+        mark="\t${fg_yellow}<${c_end} "
+
+      elif [[ "$entry" =~ ^R ]]; then
+        mark="\t${fg_yellow}~${c_end} "
+
+      elif [[ "$entry" =~ ^[MDCU] ]]; then
+        mark="\t${fg_yellow}-${c_end} "
+
+      fi
+
+    elif [[ "$mark_option" == "drop" ]]; then
+      if [[ "$entry" =~ $untracked ]]; then
+        mark="\t${fg_cyan}-${c_end} "
+
+      elif [[ "$entry" =~ ^[MADRCU\ ][MADRCU] ]]; then
+        mark="\t${fg_cyan}~${c_end} "
+
+      fi
+
+    elif [[ "$mark_option" != "false" ]]; then
+      if [[ "$entry" =~ $untracked ]]; then
+        mark="\t${fg_yellow}>${c_end} "
+
+      elif [[ "$entry" =~ ^[MADRCU\ ]R ]]; then
+        mark="\t${fg_yellow}~${c_end} "
+
+      elif [[ "$entry" =~ ^[MADRCU\ ][MDCU] ]]; then
+        mark="\t${fg_yellow}+${c_end} "
+
+      fi
+    fi
+
+    echo -e "$mark"
+  }
+
+  function __rapid_prepare {
+    local mark_option=$1
+    local git_root="$(git rev-parse --show-toplevel)"
+    local -a keys
+
+    if ! __rapid_zsh; then
+      # In bash, we need the array indexes that are assigned.
+      keys=("${!query[@]}")
+    else
+      # In zsh, we need an array of ordered keys of the associative array.
+      keys=(${(ko)query})
+    fi
+
+    for key in ${keys[@]}; do
+      if [[ "${query[$key]}" == '??' ]]; then
+        [[ "$mark_option" != "false" ]] && output+="\t${fg_b_red}?$c_end Nothing on index $key.\n"
+
+        # Remove key.
+        __rapid_zsh && unset "query[$key]" || unset query[$key]
+      else
+        local file="${query[$key]}"
+        # Remove git status prefix.
+        file="${file:3}"
+        [[ "$mark_option" != "false" ]] && output+="$(__rapid_get_mark "${query[$key]}" "$mark_option")$file\n"
+
+        query[$key]="$git_root/$file"
+      fi
+    done
+
+    printf "$output"
+
+    if [[ "${#query[@]}" -eq 0 ]]; then
+      # Nothing left likely means an error, e.g. user entered non-existing index.
+      return 1
+    fi
+  }
+
+  # Commands for the index.
+  function __rapid_index_command {
+    local git_command=$1
+    local filter=$2
+    local mark_option=$3
+
+    shift 3
+    local -a args
+    args=($@)
+
+    __rapid_git_status
+    [[ $? -eq 0 ]] || return $?
+
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter")"
+    __rapid_query "$lines" "${args[@]}"
+
+    __rapid_prepare "$mark_option"
+    if [[ $? -ne 0 ]]; then
+      return 1
+    fi
+
+    local -a command
+    command=()
+    if ! __rapid_zsh; then
+      # Split git command based on spaces.
+      IFS=' ' command=($git_command)
+    else
+      # zsh doesn't do word splitting by default, but $=var enables it.
+      command=($=git_command)
+    fi
+
+    local -a files
+    if ! __rapid_zsh; then
+      # In bash, we need the array values that are assigned.
+      files=("${query[@]}")
+    else
+      # In zsh, we need an array of ordered values of the associative array.
+      files=(${(vo)query})
+    fi
+
+    for git_param in "${git_params[@]}"; do
+      command+=("$git_param")
+    done
+
+    command+=('--')
+    for file in "${files[@]}"; do
+      command+=("$file")
+    done
+
+    "${command[@]}"
+  }
 
   function __rapid__track {
-		local untracked='/^??/ !d'
-
-		local status=$(git status --porcelain)
-		local untrackedContent=$(sed "$untracked" <<< "$status")
-		__rapid__query "$untrackedContent" "$@"
-
-		__rapid__prepare "true"
-
-		git add "${query[@]}"
-		printf "$output"
+    __rapid_index_command 'git add' "$filter_untracked" 'stage' "$@"
   }
 
-	function __rapid__stage {
-		local unstaged='/^[ MARC][MD]/!d'
-		local args
-
-		if [[ "$1" =~ ^-p|--patch$ ]]; then
-			args="${@:2}"
-		else
-			args="$@"
-		fi
-
-		local status=$(git status --porcelain)
-		local unstagedContent=$(sed "$unstaged" <<< "$status")
-		__rapid__query "$unstagedContent" "$args"
-
-		__rapid__prepare "true"
-
-		if [[ "$1" =~ ^-p|--patch$ ]]; then
-			git add --patch "${query[@]}"
-		else
-			git add "${query[@]}"
-		fi
-
-		printf "$output"
-	}
+  function __rapid__stage {
+    __rapid_index_command 'git add' "$filter_unstaged" 'stage' "$@"
+  }
 
   function __rapid__unstage {
-  	local staged='/^([MARC][ MD]|D[ M])/!d'
-
-		local status=$(git status --porcelain)
-		local stagedContent=$(sed -e "$staged" <<< "$status")
-		__rapid__query "$stagedContent" "$@"
-
-		__rapid__prepare "true" "reset"
-
-		git reset --quiet HEAD "${query[@]}"
-		printf "$output"
+    __rapid_index_command 'git reset --quiet HEAD' "$filter_staged" 'reset' "$@"
   }
 
-	function __rapid__drop {
-		local unstaged='/^[ MARC][MD]/!d'
-
-		local status=$(git status --porcelain)
-		local unstagedContent=$(sed "$unstaged" <<< "$status")
-		__rapid__query "$unstagedContent" "$@"
-
-		__rapid__prepare "true" "drop"
-
-		git checkout -- "${query[@]}"
-		printf "$output"
-	}
-
-	function __rapid__remove {
-		local untracked='/^??/!d'
-
-		local status=$(git status --porcelain)
-		local untrackedContent=$(sed "$untracked" <<< "$status")
-		__rapid__query "$untrackedContent" "$@"
-
-		__rapid__prepare "true" "drop"
-
-		rm -rf "${query[@]}"
-		printf "$output"
-	}
-
-	function __rapid__diff {
-		local status=$(git status --porcelain)
-
-		if [ $1 == '-c' ]; then
-			local staged='/^([MARC][ MD]|D[ M])/!d'
-			local stagedContent=$(sed -e "$staged" <<< "$status")
-			__rapid__query "$stagedContent" "${@:2}"
-
-			__rapid__prepare "false" "reset"
-
-			git diff --cached "${query[@]}"
-
-		else
-			local unstaged='/^[ MARC][MD]/!d'
-			local unstagedContent=$(sed "$unstaged" <<< "$status")
-			__rapid__query "$unstagedContent" "$@"
-
-			__rapid__prepare "false"
-
-			git diff "${query[@]}"
-
-		fi
-	}
-
-  function __rapid__checkout {
-		local branches
-		local line
-
-		if [[ $1 == '-a' ]]; then
-			branches=$(git branch -a)
-			line="$2"
-
-		elif [[ $1 == '-r' ]]; then
-			branches=$(git branch -r)
-			line="$2"
-
-		else
-			branches=$(git branch)
-			line="$1"
-		fi
-
-		if [[ "$line" =~ ^[1-9][0-9]*$ ]]; then
-			local toCheckout=$(sed '/detached from/ d;' <<< "$branches" | sed -n "$line !d;s/^..//;p")
-
-			if [[ -z "$toCheckout" ]]; then
-				echo -e "\t${fg_b_red}?$c_end Nothing on index $line."
-			else
-				git checkout "$toCheckout"
-			fi
-
-		else
-			echo -e "\t${fg_b_red}x$c_end Invalid input: $line."
-
-		fi
+  function __rapid__drop {
+    __rapid_index_command 'git checkout' "$filter_unstaged" 'drop' "$@"
   }
 
-	function __rapid__merge {
-		if [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
-			branch=$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")
+  function __rapid__remove {
+    __rapid_index_command 'rm -rf' "$filter_untracked" 'drop' "$@"
+  }
 
-			if [[ -z "$branch" ]]; then
-				echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
-			else
-				git merge "$branch"
-			fi
+  function __rapid__diff {
+    local filter="$filter_unstaged"
+    local cached='^--cached|--staged$'
 
-		else
-			echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
-		fi
-	}
+    if [[ "$1" =~ $cached ]]; then
+      filter="$filter_staged"
+    fi
 
-	function __rapid__rebase {
-		if [[ "$1" =~ ^-c|--continue$ ]]; then
-			git rebase --continue
+    __rapid_index_command 'git diff' "$filter" 'false' "$@"
+  }
 
-		elif [[ "$1" =~ ^-a|--abort$ ]]; then
-			git rebase --abort
+  function __rapid_status_of_type {
+    local header=$1
+    local git_status=$2
+    local filter=$3
+    local color=$4
 
-		else
-			local branch
+    local lines="$(__rapid_filter_git_status "$git_status" "$filter")"
 
-			if [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
-				branch=$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")
+    if [[ -z "$lines" ]]; then
+      return
+    fi
 
-				if [[ -z "$branch" ]]; then
-					echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
-				else
-					git rebase "$branch"
-				fi
+    # The other parameters are optional status replacements in the form of 'pattern' 'replacement'.
+    local prefixes
+    shift 4
+    while [[ $# -gt 0 ]]; do
+      prefixes+="s/\t$1\t/\t$2\t/;"
+      shift 2
+    done
 
-			else
-				echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
-			fi
-		fi
-	}
+    local index_color=$fg_b_yellow
 
-	function __rapid__status {
-		local status=$(git status --porcelain)
+    # No colors when we're part of a pipeline or output is being redirected.
+    local colorize
+    if [[ -t 1 ]]; then
+      colorize="s/^(.*)\t(.*)\t(.*)/$index_color\1$c_end\t$color\2$c_end\t$color\3$c_end/"
+    fi
 
-		local prefixStaged="s/^M[MD ]/modified:   /;s/^A[MD ]/added:      /;s/^D[M ]/deleted:    /;s/^R[MD ]/renamed:    /; s/^C[MD ]/copied:     /"
-		local prefixUnstaged="s/^[MARC ]?M/modified:   /;s/^[MARC ]?D/deleted:    /"
-		local prefixUntracked="s/^\?\?/added:      /"
-		local prefixUnmerged="s/^UU/modified both:     /;s/^AA/added both:        /;s/^UA/added remote:      /;s/^AU/added local:       /;s/^DD/deleted both:      /;s/^UD/deleted remote:    /;s/^DU/deleted local:     /"
+    local order_fields='s/^(.*)\t(.*)\t(.*)/  \2 \1 \3/'
 
-		local dyeLinenumbers="s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/"
-		local dyeStagedContent="s/^/$fg_b_red  /"
-		local dyeUnstagedContent="s/^/$fg_b_green  /"
-		local dyeUntrackedContent="s/^/$fg_b_blue  /"
-		local dyeUnmergedContent="s/^/$fg_b_magenta  /"
+    local formatted="$(
+      sed -$sedE '
+        # Put index between lines: <status> <file> -> <index>\n<status> <file>
+        {=}
+        ' <<< "$lines" | \
+      sed --silent -$sedE -e '
+        # <index>\n<status> <file> -> <index>\t<status> <file>
+        {N;s/\n/\t/}
+      ' -e :a -e "
+        # Right-pad indexes shorter than three characters to three characters.
+        {s/^[ 0-9]{1,2}\t.*/ &/;ta}
+      " -e "
+        # <index>\t<status> <file> -> (<index>)\t<status>\t<file>
+        {s/^(( *)([1-9][0-9]*))\t(..) (.*)/\2(\3)\t\4\t\5/}
 
-		local staged='/^([MARC][ MD]|D[ M])/!d'
-		local stagedContent=$(sed -e "$staged" <<< "$status")
-		local textForIndex
+        # Replace status with text, colorize fields, reorder fields.
+        {$prefixes;$colorize;$order_fields;p}"
+      )"
 
-		if [[ -n "$stagedContent" ]]; then
-			local stagedFormattedContent=$(sed = <<< "$stagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixStaged;$dyeStagedContent;$dyeLinenumbers;p")
-			textForIndex="Index - staged content:\r\n\r\n${stagedFormattedContent}\r\n\r\n"
-		fi
+    printf "%s:\n\n%s\n\n" "$header" "$formatted"
+  }
 
-		local unstaged='/^[ MARC][MD]/!d'
-		local unstagedContent=$(sed "$unstaged" <<< "$status")
-		local textForWorkTree
+  function __rapid__status {
+    __rapid_git_status
+    [[ $? -eq 0 ]] || return $?
 
-		if [[ -n "$unstagedContent" ]]; then
-			local unstagedFormattedContent=$(sed = <<< "$unstagedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnstaged;$dyeUnstagedContent;$dyeLinenumbers;p")
-			textForWorkTree="Work tree - unstaged content:\r\n\r\n$unstagedFormattedContent\r\n\r\n"
-		fi
+    __rapid_status_of_type 'Index - staged files' \
+      "$git_status" \
+      "$filter_staged" \
+      "$(git config --get-color color.status.added "bold green")" \
+      'M[MD ]'    'modified:        ' \
+      'A[MD ]'    'new file:        ' \
+      'D[M ]'     'deleted:         ' \
+      'R[MD ]'    'renamed:         ' \
+      'C[MD ]'    'copied:          '
 
-		local untracked='/^??/ !d'
-		local untrackedContent=$(sed "$untracked" <<< "$status")
-		local textForUntracked
+    __rapid_status_of_type 'Work tree - unstaged files' \
+      "$git_status" \
+      "$filter_unstaged" \
+      "$(git config --get-color color.status.changed "bold green")" \
+      '[MARC ]?M' 'modified:        ' \
+      '[MARC ]?D' 'deleted:         '
 
-		if [[ -n "$untrackedContent" ]]; then
-			local untrackedFormattedContent=$(sed = <<< "$untrackedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUntracked;$dyeUntrackedContent;$dyeLinenumbers;p")
-			textForUntracked="Untracked content:\r\n\r\n$untrackedFormattedContent\r\n\r\n"
-		fi
+    __rapid_status_of_type 'Untracked files' \
+      "$git_status" \
+      "$filter_untracked" \
+      "$(git config --get-color color.status.untracked "bold blue")" \
+      '\?\?'      'untracked file:  '
 
-		local unmerged='/^(D[DU]|A[AU]|U[ADU]|)/!d'
-		local unmergedContent=$(sed -e "$unmerged" <<< "$status")
-		local textForUnmerged
+    __rapid_status_of_type 'Unmerged files' \
+      "$git_status" \
+      "$filter_unmerged" \
+      "$fg_b_magenta" \
+      'UU'        'both modified:   ' \
+      'AA'        'both added:      ' \
+      'UA'        'added by them:   ' \
+      'AU'        'added by us:     ' \
+      'DD'        'both deleted:    ' \
+      'UD'        'deleted by them: ' \
+      'DU'        'deleted by us:   '
+  }
 
-		if [[ -n "$unmergedContent" ]]; then
-			local unmergedFormattedContent=$(sed = <<< "$unmergedContent" | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "$prefixUnmerged;$dyeUnmergedContent;$dyeLinenumbers;p")
-			textForUnmerged="Unmerged content:\r\n\r\n$unmergedFormattedContent\r\n\r\n"
-		fi
+  # Commands for branches.
+  function __rapid__branch {
+    local branches
 
-		printf "${textForIndex}${textForWorkTree}${textForUntracked}${textForUnmerged}"
-	}
+    if [[ "$1" == '-d' ]]; then
 
-	function __rapid__branch {
-		local branches
+      if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
+        branch="$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")"
 
-		if [ "$1" == '-d' ]; then
+        if [[ -z "$branch" ]]; then
+          echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
+        else
+          git branch -d "$branch"
+          return $?
+        fi
+      else
+        echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
+      fi
 
-			if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
-				branch=$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")
+    elif [[ "$1" == '-D' ]]; then
 
-				if [[ -z "$branch" ]]; then
-					echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
-				else
-					git branch -d "$branch"
-				fi
+      if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
+        branch="$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")"
 
-			else
-				echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
-			fi
+        if [[ -z "$branch" ]]; then
+          echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
+        else
+          git branch -D "$branch"
+          return $?
+        fi
 
-		elif [ "$1" == '-D' ]; then
+      else
+        echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
+      fi
 
-			if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
-				branch=$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")
+    else
+      if [[ "$1" == '-a' ]]; then
+        branches="$(git branch -a)"
+      elif [[ "$1" == '-r' ]]; then
+        branches="$(git branch -r)"
+      else
+        branches="$(git branch)"
+      fi
 
-				if [[ -z "$branch" ]]; then
-					echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
-				else
-					git branch -D "$branch"
-				fi
+      [[ $? -eq 0 ]] || return $?
 
-			else
-				echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
-			fi
+      local detached="$(sed -n$sedE "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
+      branches="$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )"
+      printf "${detached}${branches}\r\n"
 
-		else
-			if [[ "$1" == '-a' ]]; then
-				branches=$(git branch -a)
-			elif [[ "$1" == '-r' ]]; then
-				branches=$(git branch -r)
-			else
-				branches=$(git branch)
-			fi
+      return 0
+    fi
 
-			local detached=$(sed -n$sedE "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")
-			branches=$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )
-			printf "${detached}${branches}\r\n"
+    return 1
+  }
 
-		fi
-	}
+    function __rapid__checkout {
+    local branches
+    local line
 
-	if [[ $1 == 'track' ]]; then
-		__rapid__track ${@:2}
+    if [[ $1 == '-a' ]]; then
+      branches="$(git branch -a)"
+      line="$2"
 
-  elif [[ $1 == 'stage' ]]; then
-		__rapid__stage ${@:2}
+    elif [[ $1 == '-r' ]]; then
+      branches="$(git branch -r)"
+      line="$2"
 
-  elif [[ $1 == 'unstage' ]]; then
-		__rapid__unstage ${@:2}
+    else
+      branches="$(git branch)"
+      line="$1"
+    fi
 
-	elif [[ $1 == 'drop' ]]; then
-		__rapid__drop ${@:2}
+    if [[ "$line" =~ ^[1-9][0-9]*$ ]]; then
+      local toCheckout="$(sed '/detached from/ d;' <<< "$branches" | sed -n "$line !d;s/^..//;p")"
 
-	elif [[ $1 == 'remove' ]]; then
-		__rapid__remove ${@:2}
+      if [[ -z "$toCheckout" ]]; then
+        echo -e "\t${fg_b_red}?$c_end Nothing on index $line."
+      else
+        git checkout "$toCheckout"
+        return $?
+      fi
+    else
+      echo -e "\t${fg_b_red}x$c_end Invalid input: $line."
+    fi
 
-  elif [[ $1 == 'diff' ]]; then
-		__rapid__diff ${@:2}
+    return 1
+  }
 
-  elif [[ $1 == 'checkout' ]]; then
-		__rapid__checkout ${@:2}
+  function __rapid__merge {
+    if [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
+      branch="$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")"
 
-	elif [[ $1 == 'merge' ]]; then
-		__rapid__merge ${@:2}
+      if [[ -z "$branch" ]]; then
+        echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
+      else
+        git merge "$branch"
+        return $?
+      fi
+    else
+      echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
+    fi
 
-	elif [[ $1 == 'rebase' ]]; then
-		__rapid__rebase ${@:2}
+    return 1
+  }
 
-	elif [[ $1 == 'branch' ]]; then
-    __rapid__branch ${@:2}
+  function __rapid__rebase {
+    local continue='^-c|--continue$'
+    local abort='^-a|--abort$'
 
-	elif [[ $1 == 'status' ]]; then
-    __rapid__status
+    if [[ "$1" =~ $continue ]]; then
+      git rebase --continue
+      return $?
+    elif [[ "$1" =~ $abort ]]; then
+      git rebase --abort
+      return $?
+    else
+      local branch
 
-	fi
+      if [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
+        branch="$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")"
 
-	unset -f __rapid__query
-	unset -f __rapid__get_mark
-	unset -f __rapid__prepare
-	unset -f __rapid__track
-	unset -f __rapid__stage
-	unset -f __rapid__unstage
-	unset -f __rapid__drop
-	unset -f __rapid__remove
-	unset -f __rapid__diff
-	unset -f __rapid__checkout
-	unset -f __rapid__merge
-	unset -f __rapid__rebase
-	unset -f __rapid__branch
-	unset -f __rapid__status
+        if [[ -z "$branch" ]]; then
+          echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
+        else
+          git rebase "$branch"
+          return $?
+        fi
+      else
+        echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
+      fi
+    fi
+
+    return 1
+  }
+
+  __rapid_zsh && local -A query || local -a query
+  query=()
+  local -a git_params
+  git_params=()
+  local git_status
+  local output
+  local exit_status
+
+  __rapid_init_colors
+
+  local rapid_command="$command_prefix$1"
+  if declare -f "$rapid_command" > /dev/null ; then
+    $rapid_command "${@:2}"
+  else
+    __rapid_command_not_found "$1"
+  fi
+
+  exit_status=$?
+
+  __rapid_cleanup
+  return $exit_status
 }
