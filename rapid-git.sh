@@ -140,7 +140,7 @@ function rapid {
         index=$var
         end=$var
 
-      elif [[ $var =~ '^\.\.$' ]]; then
+      elif [[ $var =~ ^\.\.$ ]]; then
         index=1
         end="$(sed -n '$=' <<< "$target")"
       else
