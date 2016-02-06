@@ -14,6 +14,7 @@ There are two prerequisites worth mentioning:
 
 * Your bash version needs to be at least v4.0.0. Use the command `bash --version` to check yours.
 * If you use zsh, be aware that we tested the script with v5.0.2 and v5.1.1. Use `zsh --version` to check yours.
+* If you use `Mac` make sure that you have `gnu-sed` installed. The easiest way is to use [homebrew](http://brew.sh/) to install it: `brew install gnu-sed --with-default-names`
 
 Let's install rapid-git:
 
