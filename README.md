@@ -10,11 +10,11 @@ The concept behind rapid-git was introduced by [Alexander Groß](https://github.
 
 ## Prerequisites and installation
 
-There are two prerequisites worth mentioning:
+There are a few prerequisites worth mentioning:
 
 * Your bash version needs to be at least v4.0.0. Use the command `bash --version` to check yours.
 * If you use zsh, be aware that we tested the script with v5.0.2 and v5.1.1. Use `zsh --version` to check yours.
-* If you use `Mac` make sure that you have `gnu-sed` installed. The easiest way is to use [homebrew](http://brew.sh/) to install it: `brew install gnu-sed --with-default-names`
+* If you use `Mac`, make sure, that you have `gnu-sed` installed. The easiest way is to use [homebrew](http://brew.sh/) to install it: `brew install gnu-sed --with-default-names`. For more extensive instructions on how to install GNU commmand line tools on `Mac`, please refer to this [blog post](https://www.topbug.net/blog/2013/04/14/install-and-use-gnu-command-line-tools-in-mac-os-x/).
 
 Let's install rapid-git:
 
