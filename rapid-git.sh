@@ -2,12 +2,6 @@
 
 function rapid {
 
-  # Temporary hack until an installer function is written.
-  local sedE='r'
-  if [[ "$(uname -s)" == 'Darwin' ]]; then
-    sedE='E'
-  fi
-
   local function_prefix='__rapid_'
   local command_prefix="${function_prefix}_"
   local -a rapid_functions
@@ -111,7 +105,7 @@ function rapid {
     local git_status=$1
     local filter="/^$2/!d"
 
-    printf "%s" "$(sed -$sedE "$filter" <<< "$git_status")"
+    printf "%s" "$(sed -r "$filter" <<< "$git_status")"
   }
 
   function __rapid_query {
@@ -361,11 +355,11 @@ function rapid {
     local order_fields='s/^(.*)\t(.*)\t(.*)/  \2 \1 \3/'
 
     local formatted="$(
-      sed -$sedE '
+      sed -r '
         # Put index between lines: <status> <file> -> <index>\n<status> <file>
         {=}
         ' <<< "$lines" | \
-      sed --silent -$sedE -e '
+      sed --silent -r -e '
         # <index>\n<status> <file> -> <index>\t<status> <file>
         {N;s/\n/\t/}
       ' -e :a -e "
@@ -468,8 +462,8 @@ function rapid {
 
       [[ $? -eq 0 ]] || return $?
 
-      local detached="$(sed -n$sedE "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
-      branches="$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )"
+      local detached="$(sed -nr "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
+      branches="$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -nr "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )"
       printf "${detached}${branches}\r\n"
 
       return 0
