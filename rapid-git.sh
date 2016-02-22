@@ -450,7 +450,6 @@ function rapid {
 
       [[ $? -eq 0 ]] || return $?
 
-      local detached="$(sed -nr "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
       branches="$(
         sed '/detached from/ d' <<< "$branches" | \
         sed -r {=} | \
@@ -472,7 +471,7 @@ function rapid {
         p"
       )"
 
-      printf "${detached}${branches}\r\n"
+      printf "${branches}\r\n"
 
       return 0
     fi
