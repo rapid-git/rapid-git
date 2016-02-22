@@ -497,7 +497,11 @@ function rapid {
     fi
 
     if [[ "$line" =~ ^[1-9][0-9]*$ ]]; then
-      local toCheckout="$(sed '/detached from/ d;' <<< "$branches" | sed -n "$line !d;s/^..//;p")"
+      local toCheckout="$(
+        sed -n "$line !d
+          s/^..//
+        p" <<< "$branches"
+      )"
 
       if [[ -z "$toCheckout" ]]; then
         echo -e "\t${fg_b_red}?$c_end Nothing on index $line."
