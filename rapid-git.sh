@@ -20,26 +20,14 @@ function rapid {
     # No colors when we're part of a pipeline or output is being redirected.
     [[ -t 1 ]] || return
 
-    # Commented colors are not used. Speeds up things a bit on Windows where process creation is expensive.
     c_end="$(git config --get-color "" "reset")"
 
-    # fg_black="$(git config --get-color "" "black")"
-    # fg_red="$(git config --get-color "" "red")"
-    # fg_green="$(git config --get-color "" "green")"
     fg_yellow="$(git config --get-color "" "yellow")"
-    # fg_blue="$(git config --get-color "" "blue")"
-    # fg_magenta="$(git config --get-color "" "magenta")"
     fg_cyan="$(git config --get-color "" "cyan")"
-    #fg_white="$(git config --get-color "" "white")"
-
-    # fg_b_black="$(git config --get-color "" "bold black")"
     fg_b_red="$(git config --get-color "" "bold red")"
-    # fg_b_green="$(git config --get-color "" "bold green")"
     fg_b_yellow="$(git config --get-color "" "bold yellow")"
-    # fg_b_blue="$(git config --get-color "" "bold blue")"
     fg_b_magenta="$(git config --get-color "" "bold magenta")"
     fg_b_cyan="$(git config --get-color "" "bold cyan")"
-    # fg_b_white="$(git config --get-color "" "bold white")"
   }
 
   function __rapid_zsh {
