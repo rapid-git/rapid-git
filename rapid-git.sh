@@ -2,12 +2,6 @@
 
 function rapid {
 
-  # Temporary hack until an installer function is written.
-  local sedE='r'
-  if [[ "$(uname -s)" == 'Darwin' ]]; then
-    sedE='E'
-  fi
-
   local function_prefix='__rapid_'
   local command_prefix="${function_prefix}_"
   local -a rapid_functions
@@ -26,27 +20,15 @@ function rapid {
     # No colors when we're part of a pipeline or output is being redirected.
     [[ -t 1 ]] || return
 
-    # Commented colors are not used. Speeds up things a bit on Windows where process creation is expensive.
     c_end="$(git config --get-color "" "reset")"
 
-    # fg_black="$(git config --get-color "" "black")"
-    # fg_red="$(git config --get-color "" "red")"
-    # fg_green="$(git config --get-color "" "green")"
     fg_yellow="$(git config --get-color "" "yellow")"
-    # fg_blue="$(git config --get-color "" "blue")"
-    # fg_magenta="$(git config --get-color "" "magenta")"
     fg_cyan="$(git config --get-color "" "cyan")"
-    #fg_white="$(git config --get-color "" "white")"
-
-    # fg_b_black="$(git config --get-color "" "bold black")"
     fg_b_red="$(git config --get-color "" "bold red")"
-    # fg_b_green="$(git config --get-color "" "bold green")"
     fg_b_yellow="$(git config --get-color "" "bold yellow")"
-    # fg_b_blue="$(git config --get-color "" "bold blue")"
     fg_b_magenta="$(git config --get-color "" "bold magenta")"
     fg_b_cyan="$(git config --get-color "" "bold cyan")"
-    # fg_b_white="$(git config --get-color "" "bold white")"
-  }
+}
 
   function __rapid_zsh {
     [[ -n "$ZSH_VERSION" ]]
@@ -111,7 +93,7 @@ function rapid {
     local git_status=$1
     local filter="/^$2/!d"
 
-    printf "%s" "$(sed -$sedE "$filter" <<< "$git_status")"
+    printf "%s" "$(sed -r "$filter" <<< "$git_status")"
   }
 
   function __rapid_query {
@@ -361,11 +343,11 @@ function rapid {
     local order_fields='s/^(.*)\t(.*)\t(.*)/  \2 \1 \3/'
 
     local formatted="$(
-      sed -$sedE '
+      sed -r '
         # Put index between lines: <status> <file> -> <index>\n<status> <file>
         {=}
         ' <<< "$lines" | \
-      sed --silent -$sedE -e '
+      sed --silent -r -e '
         # <index>\n<status> <file> -> <index>\t<status> <file>
         {N;s/\n/\t/}
       ' -e :a -e "
@@ -468,9 +450,28 @@ function rapid {
 
       [[ $? -eq 0 ]] || return $?
 
-      local detached="$(sed -n$sedE "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
-      branches="$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -n$sedE "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )"
-      printf "${detached}${branches}\r\n"
+      branches="$(
+        sed '/detached from/ d' <<< "$branches" | \
+        sed -r {=} | \
+        sed --silent -r -e '
+          {N;s/\n/\t/}
+        ' -e :a -e "
+          {s/^[ 0-9]{1,2}\t.*/ &/;ta}
+        " -e "
+        # <index><marker (*)><branch-name> -> <marker>\t<index>\t<branch-name>
+        {s/^([ 0-9]{3})\t([ *] )(.*)/\2\1\t\3/}
+        # Replace * with >
+        {s/^(\*)/>/}
+        # Expands 1 to (1), 2 to (2), ...
+        {s/([0-9]{1,3})(\t.*)/(\1)\2/}
+        # Colorizes the current branch
+        {s/^(>.+)(\([0-9]{1,3}\))(.*)/$fg_b_cyan\1$c_end$fg_b_yellow\2$c_end$fg_b_cyan\3$c_end/}
+        # Colorizes the current branch
+        {s/^([^>]+)(\([0-9]{1,3}\))(.*)/\1$fg_yellow\2$c_end$fg_cyan\3$c_end/}
+        p"
+      )"
+
+      printf "${branches}\r\n"
 
       return 0
     fi
@@ -496,7 +497,11 @@ function rapid {
     fi
 
     if [[ "$line" =~ ^[1-9][0-9]*$ ]]; then
-      local toCheckout="$(sed '/detached from/ d;' <<< "$branches" | sed -n "$line !d;s/^..//;p")"
+      local toCheckout="$(
+        sed -n "$line !d
+          s/^..//
+        p" <<< "$branches"
+      )"
 
       if [[ -z "$toCheckout" ]]; then
         echo -e "\t${fg_b_red}?$c_end Nothing on index $line."
