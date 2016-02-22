@@ -28,7 +28,7 @@ function rapid {
     fg_b_yellow="$(git config --get-color "" "bold yellow")"
     fg_b_magenta="$(git config --get-color "" "bold magenta")"
     fg_b_cyan="$(git config --get-color "" "bold cyan")"
-  }
+}
 
   function __rapid_zsh {
     [[ -n "$ZSH_VERSION" ]]
@@ -451,7 +451,27 @@ function rapid {
       [[ $? -eq 0 ]] || return $?
 
       local detached="$(sed -nr "/detached from/ !d;s/^\*/$fg_b_cyan>$c_end/;s/.$/&\\\\r\\\\n/;p" <<< "$branches")"
-      branches="$(sed '/detached from/ d' <<< "$branches" | sed = | sed '{N;s/\n/ /;}' | sed -e 's/^\([1-9][0-9]*\)  *\(.*\)/\2 \(\1\)/' | sed -nr "s/^/  /;s/^  \*/$fg_b_cyan>$c_end/;s/\([1-9][0-9]*\)$/$fg_b_yellow&$c_end/;p" )"
+      branches="$(
+        sed '/detached from/ d' <<< "$branches" | \
+        sed -r {=} | \
+        sed --silent -r -e '
+          {N;s/\n/\t/}
+        ' -e :a -e "
+          {s/^[ 0-9]{1,2}\t.*/ &/;ta}
+        " -e "
+        # <index><marker (*)><branch-name> -> <marker>\t<index>\t<branch-name>
+        {s/^([ 0-9]{3})\t([ *] )(.*)/\2\1\t\3/}
+        # Replace * with >
+        {s/^(\*)/>/}
+        # Expands 1 to (1), 2 to (2), ...
+        {s/([0-9]{1,3})(\t.*)/(\1)\2/}
+        # Colorizes the current branch
+        {s/^(>.+)(\([0-9]{1,3}\))(.*)/$fg_b_cyan\1$c_end$fg_b_yellow\2$c_end$fg_b_cyan\3$c_end/}
+        # Colorizes the current branch
+        {s/^([^>]+)(\([0-9]{1,3}\))(.*)/\1$fg_yellow\2$c_end$fg_cyan\3$c_end/}
+        p"
+      )"
+
       printf "${detached}${branches}\r\n"
 
       return 0
