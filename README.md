@@ -180,5 +180,11 @@ These commands relate to git branches.
 + [Twitter](https://twitter.com/agross)
 + [Blog](http://therightstuff.de/)
 
+### Gregor Woiwode
+
++ [GitHub](https://github.com/GregOnNet)
++ [Twitter](https://twitter.com/gregonnet)
++ [Blog](http://www.woiwode.info/)
+
 ## License
 rapid-git is under MIT license - http://www.opensource.org/licenses/mit-license.php
