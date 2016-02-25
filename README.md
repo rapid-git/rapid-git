@@ -20,7 +20,7 @@ Let's install rapid-git:
 
 1. Start with cloning this repository:
    ```bash
-   git clone https://github.com/philiptober/rapid-git.git
+   git clone https://github.com/rapid-git/rapid-git.git
    ```
 
 1. Add *rapid-git.sh* to *.bashrc* or *.zshrc*:
