@@ -423,40 +423,36 @@ function rapid {
       'DU'        'deleted by us:   '
   }
 
+  function __rapid_index_branching_command {
+    local git_command=$1
+
+    shift
+    local -a args
+    args=($@)
+
+    __rapid_query "$(git branch)" "${args[@]}"
+
+    __rapid_prepare "false" "true"
+    if [[ $? -ne 0 ]]; then
+      return 1
+    fi
+
+    __rapid_construct_command "$git_command" "branching"
+  }
+
   # Commands for branches.
   function __rapid__branch {
     local branches
 
     if [[ "$1" == '-d' ]]; then
-
-      if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
-        branch="$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")"
-
-        if [[ -z "$branch" ]]; then
-          echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
-        else
-          git branch -d "$branch"
-          return $?
-        fi
-      else
-        echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
-      fi
+      shift
+      __rapid_index_branching_command 'git branch -d' "$@"
+      return $?
 
     elif [[ "$1" == '-D' ]]; then
-
-      if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
-        branch="$(git branch | sed '/detached from/ d;' | sed -n "$2 !d;s/^..//;p")"
-
-        if [[ -z "$branch" ]]; then
-          echo -e "\t${fg_b_red}?$c_end Nothing on index $2."
-        else
-          git branch -D "$branch"
-          return $?
-        fi
-
-      else
-        echo -e "\t${fg_b_red}x$c_end Invalid input: $2."
-      fi
+      shift
+      __rapid_index_branching_command 'git branch -D' "$@"
+      return $?
 
     else
       if [[ "$1" == '-a' ]]; then
