@@ -194,8 +194,19 @@ function rapid {
   }
 
   function __rapid_prepare {
-    local mark_option=$1
+    local mark_option="$1"
+    local is_branch_command="$2"
     local git_root="$(git rev-parse --show-toplevel)"
+    local prefix_count
+    local new_prefix
+
+    if [[ "$is_branch_command" != "true" ]]; then
+      prefix_count=3
+      new_prefix="$git_root/"
+    else
+      prefix_count=2
+    fi
+
     local -a keys
 
     if ! __rapid_zsh; then
@@ -213,12 +224,12 @@ function rapid {
         # Remove key.
         __rapid_zsh && unset "query[$key]" || unset query[$key]
       else
-        local file="${query[$key]}"
-        # Remove git status prefix.
-        file="${file:3}"
-        [[ "$mark_option" != "false" ]] && output+="$(__rapid_get_mark "${query[$key]}" "$mark_option")$file\n"
+        local target="${query[$key]}"
+        # Remove git status/branch prefix.
+        target="${target:$prefix_count}"
+        [[ "$mark_option" != "false" ]] && output+="$(__rapid_get_mark "${query[$key]}" "$mark_option")$target\n"
 
-        query[$key]="$git_root/$file"
+        query[$key]="$new_prefix$target"
       fi
     done
 
