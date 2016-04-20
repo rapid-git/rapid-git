@@ -262,6 +262,13 @@ function rapid {
       return 1
     fi
 
+    __rapid_construct_command "$git_command" "committing"
+  }
+
+  function __rapid_construct_command {
+    local git_command="$1"
+    local variant="$2"
+
     local -a command
     command=()
     if ! __rapid_zsh; then
@@ -285,7 +292,7 @@ function rapid {
       command+=("$git_param")
     done
 
-    command+=('--')
+    [[ "$variant" == "committing" ]] && command+=('--')
     for file in "${files[@]}"; do
       command+=("$file")
     done
