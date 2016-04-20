@@ -578,6 +578,19 @@ function rapid {
     return 1
   }
 
+  function __rapid__push {
+    local remote="origin"
+    local option
+
+    if [[ "$1" == "--delete" ]]; then
+      option=" $1"
+      shift
+    fi
+
+    __rapid_index_branching_command "git push $remote$option" "$@"
+    return $?
+  }
+
   __rapid_zsh && local -A query || local -a query
   query=()
   local -a git_params
