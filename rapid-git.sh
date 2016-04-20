@@ -242,7 +242,7 @@ function rapid {
   }
 
   # Commands for the index.
-  function __rapid_index_command {
+  function __rapid_index_committing_command {
     local git_command=$1
     local filter=$2
     local mark_option=$3
@@ -301,23 +301,23 @@ function rapid {
   }
 
   function __rapid__track {
-    __rapid_index_command 'git add' "$filter_untracked" 'stage' "$@"
+    __rapid_index_committing_command 'git add' "$filter_untracked" 'stage' "$@"
   }
 
   function __rapid__stage {
-    __rapid_index_command 'git add' "$filter_unstaged" 'stage' "$@"
+    __rapid_index_committing_command 'git add' "$filter_unstaged" 'stage' "$@"
   }
 
   function __rapid__unstage {
-    __rapid_index_command 'git reset --quiet HEAD' "$filter_staged" 'reset' "$@"
+    __rapid_index_committing_command 'git reset --quiet HEAD' "$filter_staged" 'reset' "$@"
   }
 
   function __rapid__drop {
-    __rapid_index_command 'git checkout' "$filter_unstaged" 'drop' "$@"
+    __rapid_index_committing_command 'git checkout' "$filter_unstaged" 'drop' "$@"
   }
 
   function __rapid__remove {
-    __rapid_index_command 'rm -rf' "$filter_untracked" 'drop' "$@"
+    __rapid_index_committing_command 'rm -rf' "$filter_untracked" 'drop' "$@"
   }
 
   function __rapid__diff {
@@ -328,7 +328,7 @@ function rapid {
       filter="$filter_staged"
     fi
 
-    __rapid_index_command 'git diff' "$filter" 'false' "$@"
+    __rapid_index_committing_command 'git diff' "$filter" 'false' "$@"
   }
 
   function __rapid_status_of_type {
