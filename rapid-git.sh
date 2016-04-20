@@ -494,7 +494,7 @@ function rapid {
     return 1
   }
 
-    function __rapid__checkout {
+  function __rapid__checkout {
     local branches
     local line
 
