@@ -40,7 +40,8 @@ function rapid {
     if ! __rapid_zsh; then
       # Bash uses declare to return all functions.
       IFS=$'\n'
-      rapid_functions=($(declare -F | cut --delimiter=' ' --fields=3 | /usr/bin/grep "$function_prefix"))
+      # using <cut -d delim -f list> to support BSD and GNU cut
+      rapid_functions=($(declare -F | cut -d ' ' -f 3 | /usr/bin/grep "$function_prefix"))
     else
       # zsh has a function associative array.
       local -a all_functions
