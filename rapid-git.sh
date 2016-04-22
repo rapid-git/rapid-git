@@ -634,7 +634,7 @@ function rapid {
   function __rapid__push {
     local remote="origin"
 
-    __rapid_index_branching_command "git push $remote" 'ranges' "$@"
+    __rapid_index_branching_command "git push $remote" 'index' "$@"
     return $?
   }
 
