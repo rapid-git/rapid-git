@@ -97,8 +97,62 @@ function rapid {
     printf "%s" "$(sed -r "$filter" <<< "$git_status")"
   }
 
-  function __rapid_query {
-    local target=$1
+  function __rapid_query_lines {
+    local lines="$1"
+    local index="$2"
+    local end="$3"
+
+    while [[ $index -le $end ]]; do
+      local target="$(sed "$index!d" <<< "$lines")"
+
+      if [[ -z "$target" ]]; then
+        query[$index]="??"
+      elif [[ -z "${query[$index]}" ]]; then
+        query[$index]="$target"
+      fi
+
+      index=$((index + 1))
+    done
+  }
+
+  function __rapid_query_index_and_git_params {
+    local lines="$1"
+    local got_index="false"
+
+    # Process the rest of the parameters either as indexes or as git params.
+    shift
+    while [[ $# -gt 0 ]]; do
+
+      if [[ "$got_index" == "false" && $1 =~ ^[1-9][0-9]*$ ]]; then
+        __rapid_query_lines "$lines" "$1" "$1"
+        got_index="true"
+      else
+        git_params+=("$1")
+      fi
+
+      shift
+    done
+  }
+
+  function __rapid_query_indexes_and_git_params {
+    local lines="$1"
+
+    # Process the rest of the parameters either as indexes or as git params.
+    shift
+    while [[ $# -gt 0 ]]; do
+
+      if [[ $1 =~ ^[1-9][0-9]*$ ]]; then
+        __rapid_query_lines "$lines" "$1" "$1"
+      else
+        git_params+=("$1")
+      fi
+
+      shift
+    done
+  }
+
+  function __rapid_query_ranges_and_git_params {
+    local lines="$1"
 
     # Process the rest of the parameters either as indexes or as git params.
     shift
@@ -113,19 +167,20 @@ function rapid {
 
       elif [[ $var =~ ^[1-9][0-9]*\.\.$ ]]; then
         index="$(sed 's/\.\.$//g' <<< "$var")"
-        end="$(sed -n '$=' <<< "$target")"
+        end="$(sed -n '$=' <<< "$lines")"
 
       elif [[ $var =~ ^\.\.[1-9][0-9]*$ ]]; then
         index=1
         end="$(sed 's/^\.\.//g' <<< "$var")"
 
-      elif [[ $var =~ ^[1-9][0-9]*$ ]]; then
-        index=$var
-        end=$var
-
       elif [[ $var =~ ^\.\.$ ]]; then
         index=1
-        end="$(sed -n '$=' <<< "$target")"
+        end="$(sed -n '$=' <<< "$lines")"
+
+      elif [[ $var =~ ^[1-9][0-9]*$ ]]; then
+          index=$var
+          end=$var
+
       else
         git_params+=("$var")
 
@@ -134,18 +189,7 @@ function rapid {
         end=$((index - 1))
       fi
 
-      while [[ $index -le $end ]]; do
-        local file_status="$(sed "$index!d" <<< "$target")"
-
-        if [[ -z "$file_status" ]]; then
-          query[$index]="??"
-        elif [[ -z "${query[$index]}" ]]; then
-          query[$index]="$file_status"
-        fi
-
-        index=$((index + 1))
-      done
-
+      __rapid_query_lines "$lines" "$index" "$end"
       shift
     done
   }
@@ -255,7 +299,7 @@ function rapid {
     [[ $? -eq 0 ]] || return $?
 
     local lines="$(__rapid_filter_git_status "$git_status" "$filter")"
-    __rapid_query "$lines" "${args[@]}"
+    __rapid_query_ranges_and_git_params "$lines" "${args[@]}"
 
     __rapid_prepare "$mark_option"
     if [[ $? -ne 0 ]]; then
@@ -424,13 +468,25 @@ function rapid {
   }
 
   function __rapid_index_branching_command {
-    local git_command=$1
+    local git_command="$1"
+    local variant=$2
 
-    shift
+    shift 2
     local -a args
     args=($@)
 
-    __rapid_query "$(git branch)" "${args[@]}"
+    if [[ "$variant" == "index" ]]; then
+      __rapid_query_index_and_git_params "$(git branch)" "${args[@]}"
+
+    elif [[ "$variant" == "indexes" ]]; then
+      __rapid_query_indexes_and_git_params "$(git branch)" "${args[@]}"
+
+    elif [[ "$variant" == "ranges"  ]]; then
+      __rapid_query_ranges_and_git_params "$(git branch)" "${args[@]}"
+
+    else
+      return 1
+    fi
 
     __rapid_prepare "false" "true"
     if [[ $? -ne 0 ]]; then
@@ -444,14 +500,11 @@ function rapid {
   function __rapid__branch {
     local branches
 
-    if [[ "$1" == '-d' ]]; then
+    if [[ "$1" == '-d' ]] || [[ "$1" == '-D' ]]; then
+      local delete_param="$1"
       shift
-      __rapid_index_branching_command 'git branch -d' "$@"
-      return $?
 
-    elif [[ "$1" == '-D' ]]; then
-      shift
-      __rapid_index_branching_command 'git branch -D' "$@"
+      __rapid_index_branching_command "git branch $delete_param" 'ranges' "$@"
       return $?
 
     else
@@ -580,14 +633,8 @@ function rapid {
 
   function __rapid__push {
     local remote="origin"
-    local option
 
-    if [[ "$1" == "--delete" ]]; then
-      option=" $1"
-      shift
-    fi
-
-    __rapid_index_branching_command "git push $remote$option" "$@"
+    __rapid_index_branching_command "git push $remote" 'ranges' "$@"
     return $?
   }
 
