@@ -161,25 +161,25 @@ function rapid {
       local index=
       local end=
 
-      if [[ $var =~ ^[1-9][0-9]*\.\.[1-9][0-9]*$ ]]; then
+      if [[ $var =~ ^[1-9][0-9]*[.][.][1-9][0-9]*$ ]]; then
         index="$(sed 's/\.\.[1-9][0-9]*$//g' <<< "$var")"
         end="$(sed 's/^[1-9][0-9]*\.\.//g' <<< "$var")"
 
-      elif [[ $var =~ ^[1-9][0-9]*\.\.$ ]]; then
+      elif [[ $var =~ ^[1-9][0-9]*[.][.]$ ]]; then
         index="$(sed 's/\.\.$//g' <<< "$var")"
         end="$(sed -n '$=' <<< "$lines")"
 
-      elif [[ $var =~ ^\.\.[1-9][0-9]*$ ]]; then
+      elif [[ $var =~ ^[.][.][1-9][0-9]*$ ]]; then
         index=1
         end="$(sed 's/^\.\.//g' <<< "$var")"
-
-      elif [[ $var =~ ^\.\.$ ]]; then
-        index=1
-        end="$(sed -n '$=' <<< "$lines")"
 
       elif [[ $var =~ ^[1-9][0-9]*$ ]]; then
           index=$var
           end=$var
+
+      elif [[ $var =~ ^[.][.]$ ]]; then
+        index=1
+        end="$(sed -n '$=' <<< "$lines")"
 
       else
         git_params+=("$var")
