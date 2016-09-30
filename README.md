@@ -1,6 +1,6 @@
 # rapid-git
 
-![rapid-git Demo](https://raw.githubusercontent.com/agross/rapid-git/master/demo.gif)
+![rapid-git Demo](https://raw.githubusercontent.com/rapid-git/rapid-git/master/demo.gif)
 
 rapid-git provides shortcuts for often-used git commands which aim to make your daily git use more efficient by typing less.
 
