@@ -730,3 +730,22 @@ function rapid {
   __rapid_cleanup
   return $exit_status
 }
+
+_rapid_complete() 
+{
+  COMPREPLY=()
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+
+  if [[ $COMP_CWORD -eq 1 ]] ; then
+    local cmds=""
+    COMPREPLY=($(compgen -W "${cmds}" -- ${cur}))
+    return 0
+  fi
+
+  # fallback completion
+  COMPREPLY=($(compgen -o bashdefault -o default -o nospace -f ${cur}))
+  return 0
+}
+
+complete -F _rapid_complete rapid
+
