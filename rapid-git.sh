@@ -353,7 +353,7 @@ function rapid {
   }
 
   function __rapid__unstage {
-    __rapid_index_committing_command 'git reset --quiet HEAD' "$filter_staged" 'reset' "$@"
+    __rapid_index_committing_command 'git reset --quiet' "$filter_staged" 'reset' "$@"
   }
 
   function __rapid__drop {
