@@ -737,7 +737,7 @@ _rapid_complete()
   local cur="${COMP_WORDS[COMP_CWORD]}"
 
   if [[ $COMP_CWORD -eq 1 ]] ; then
-    local cmds=""
+    local cmds="branch checkout diff drop merge push rebase remove stage status track unstage"
     COMPREPLY=($(compgen -W "${cmds}" -- ${cur}))
     return 0
   fi
