@@ -14,6 +14,7 @@ function rapid {
   local filter_unmerged='(D[DU]|A[AU]|U[ADU])'
 
   local -A colors
+  local -A git_color_cache
 
   function __rapid_colorize {
     # No colors if requested.
@@ -38,30 +39,42 @@ function rapid {
     # We could use git config to configure custom colors, but that would force
     # us to create a git process. On Windows, this is as slow as a snail bound
     # to a turtle. Both moving in opposite directions.
-    local env_key=$1
+    #
+    # To alleviate the problem a bit, we build a cache of git color values.
+    #
+    local key=$1
     local git_config=$2
     local git_default=$3
+    local value
 
-    echo -e "${RAPID_GIT_COLORS[$env_key]:-$(git config --get-color "$git_config" "$git_default")}"
+    value="${RAPID_GIT_COLORS[$key]}"
+    if [[ -z "$value" ]]; then
+      cache_key="$git_config-${git_default// /.}"
+
+      value="${git_color_cache[$cache_key]:-$(git config --get-color "$git_config" "$git_default")}"
+      git_color_cache[$cache_key]=$value
+    fi
+
+    colors[$key]="$value"
   }
 
   function __rapid_init_colors {
     __rapid_colorize || return
 
-    colors[reset]="$(__rapid_color_value                reset                ''                     'reset')"
-    colors[branch]="$(__rapid_color_value               branch               color.branch.local     'cyan')"
-    colors[branch_index]="$(__rapid_color_value         branch_index         ''                     'yellow')"
-    colors[branch_current]="$(__rapid_color_value       branch_current       color.branch.current   'bold cyan')"
-    colors[branch_current_index]="$(__rapid_color_value branch_current_index ''                     'bold yellow')"
-    colors[status_index]="$(__rapid_color_value         status_index         ''                     'bold yellow')"
-    colors[status_staged]="$(__rapid_color_value        status_staged        color.status.added     'bold red')"
-    colors[status_unstaged]="$(__rapid_color_value      status_unstaged      color.status.changed   'bold green')"
-    colors[status_untracked]="$(__rapid_color_value     status_untracked     color.status.untracked 'bold blue')"
-    colors[status_unmerged]="$(__rapid_color_value      status_unmerged      ''                     'bold magenta')"
-    colors[mark_stage]="$(__rapid_color_value           mark_stage           ''                     'yellow')"
-    colors[mark_reset]="$(__rapid_color_value           mark_reset           ''                     'yellow')"
-    colors[mark_drop]="$(__rapid_color_value            mark_drop            ''                     'cyan')"
-    colors[mark_error]="$(__rapid_color_value           mark_error           ''                     'bold red')"
+    __rapid_color_value 'reset'                ''                       'reset'
+    __rapid_color_value 'branch'               'color.branch.local'     'cyan'
+    __rapid_color_value 'branch_index'         ''                       'yellow'
+    __rapid_color_value 'branch_current'       'color.branch.current'   'bold cyan'
+    __rapid_color_value 'branch_current_index' ''                       'bold yellow'
+    __rapid_color_value 'status_index'         ''                       'bold yellow'
+    __rapid_color_value 'status_staged'        'color.status.added'     'bold red'
+    __rapid_color_value 'status_unstaged'      'color.status.changed'   'bold green'
+    __rapid_color_value 'status_untracked'     'color.status.untracked' 'bold blue'
+    __rapid_color_value 'status_unmerged'      ''                       'bold magenta'
+    __rapid_color_value 'mark_stage'           ''                       'yellow'
+    __rapid_color_value 'mark_reset'           ''                       'yellow'
+    __rapid_color_value 'mark_drop'            ''                       'cyan'
+    __rapid_color_value 'mark_error'           ''                       'bold red'
   }
 
   function __rapid_zsh {
