@@ -166,6 +166,21 @@ These commands relate to git branches.
 | `rme`         | `rapid merge`       |
 | `rre`         | `rapid rebase`      |
 
+## Color configuration
+
+rapid-git colorizes output by default unless output is being redirected or if it
+is invoked as part of a pipeline.* You can explicitly disable output coloring by
+setting the variable `RAPID_GIT_COLORS` to a falsey value (`0`, `false`, `off`).
+You do not need to export the value.
+
+Example:
+```sh
+$ RAPID_GIT_COLORS=off
+```
+
+\* Currently this is only implemented for the index part. Branches will be
+colored regardless.
+
 ## Authors
 
 ### Philip Tober

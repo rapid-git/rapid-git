@@ -6,6 +6,8 @@ function rapid {
   local command_prefix="${function_prefix}_"
   local -a rapid_functions
 
+  local falsey='^false|off|0$'
+
   local filter_untracked='\?\?'
   local filter_unstaged='[ MARC][MD]'
   local filter_staged='([MARC][ MD]|D[ M])'
@@ -15,10 +17,23 @@ function rapid {
   local c_end
   local fg_black fg_red fg_green fg_yellow fg_blue fg_magenta fg_cyan fg_white
   local fg_b_black fg_b_red fg_b_green fg_b_yellow fg_b_blue fg_b_magenta fg_b_cyan fg_b_white
+  local -A status_color
+
+  function __rapid_colorize {
+    # No colors if requested.
+    [[ $RAPID_GIT_COLORS =~ $falsey ]] && return 1
+
+    # Colors when we're:
+    #   - not part of a pipeline, or
+    #   - output is not being redirected.
+    [[ -t 1 ]] && return 0
+
+    # No colors.
+    return 1
+  }
 
   function __rapid_init_colors {
-    # No colors when we're part of a pipeline or output is being redirected.
-    [[ -t 1 ]] || return
+    __rapid_colorize || return
 
     c_end="$(git config --get-color "" "reset")"
 
@@ -28,7 +43,11 @@ function rapid {
     fg_b_yellow="$(git config --get-color "" "bold yellow")"
     fg_b_magenta="$(git config --get-color "" "bold magenta")"
     fg_b_cyan="$(git config --get-color "" "bold cyan")"
-}
+
+    status_color[added]="$(git config --get-color color.status.added "bold green")"
+    status_color[unstaged]="$(git config --get-color color.status.changed "bold green")"
+    status_color[untracked]="$(git config --get-color color.status.untracked "bold blue")"
+  }
 
   function __rapid_zsh {
     [[ -n "$ZSH_VERSION" ]]
@@ -397,9 +416,8 @@ function rapid {
 
     local index_color=$fg_b_yellow
 
-    # No colors when we're part of a pipeline or output is being redirected.
     local colorize
-    if [[ -t 1 ]]; then
+    if __rapid_colorize; then
       colorize="s/^(.*)\t(.*)\t(.*)/$index_color\1$c_end\t$color\2$c_end\t$color\3$c_end/"
     fi
 
@@ -434,7 +452,7 @@ function rapid {
     __rapid_status_of_type 'Index - staged files' \
       "$git_status" \
       "$filter_staged" \
-      "$(git config --get-color color.status.added "bold green")" \
+      "${status_color[added]}" \
       'M[MD ]'    'modified:        ' \
       'A[MD ]'    'new file:        ' \
       'D[M ]'     'deleted:         ' \
@@ -444,14 +462,14 @@ function rapid {
     __rapid_status_of_type 'Work tree - unstaged files' \
       "$git_status" \
       "$filter_unstaged" \
-      "$(git config --get-color color.status.changed "bold green")" \
+      "${status_color[unstaged]}" \
       '[MARC ]?M' 'modified:        ' \
       '[MARC ]?D' 'deleted:         '
 
     __rapid_status_of_type 'Untracked files' \
       "$git_status" \
       "$filter_untracked" \
-      "$(git config --get-color color.status.untracked "bold blue")" \
+      "${status_color[untracked]}" \
       '\?\?'      'untracked file:  '
 
     __rapid_status_of_type 'Unmerged files' \
@@ -518,6 +536,7 @@ function rapid {
 
       [[ $? -eq 0 ]] || return $?
 
+      # TODO: Conditional coloring (see __rapid_status_of_type).
       branches="$(
         sed '/detached from/ d' <<< "$branches" | \
         sed -r {=} | \
