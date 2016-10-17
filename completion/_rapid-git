@@ -34,7 +34,8 @@ _rapid-git() {
 (( $+functions[_rapid_git_commands] )) ||
 _rapid_git_commands() {
   _alternative 'index:index commands:_rapid_git_index_commands' \
-               'branch:branch commands:_rapid_git_branch_commands'
+               'branch:branch commands:_rapid_git_branch_commands' \
+               'misc:misc commands:_rapid_git_misc_commands' \
 }
 
 (( $+functions[_rapid_git_index_commands] )) ||
@@ -67,6 +68,17 @@ _rapid_git_branch_commands() {
   )
 
   _describe -t branch 'branch commands' commands
+}
+
+(( $+functions[_rapid_git_misc_commands] )) ||
+_rapid_git_misc_commands() {
+  local commands
+
+  commands=(
+    'colors:Show color configuration'
+  )
+
+  _describe -t misc 'misc commands' commands
 }
 
 _rapid-git "$@"

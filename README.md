@@ -1,6 +1,6 @@
 # rapid-git
 
-![rapid-git Demo](https://raw.githubusercontent.com/rapid-git/rapid-git/master/demo.gif)
+![rapid-git Demo](https://raw.githubusercontent.com/rapid-git/rapid-git/master/images/demo.gif)
 
 rapid-git provides shortcuts for often-used git commands which aim to make your daily git use more efficient by typing less.
 
@@ -168,8 +168,10 @@ These commands relate to git branches.
 
 ## Color configuration
 
+### Disabling colors
+
 rapid-git colorizes output by default unless output is being redirected or if it
-is invoked as part of a pipeline.* You can explicitly disable output coloring by
+is invoked as part of a pipeline. You can explicitly disable output coloring by
 setting the variable `RAPID_GIT_COLORS` to a falsey value (`0`, `false`, `off`).
 You do not need to export the value.
 
@@ -178,8 +180,56 @@ Example:
 $ RAPID_GIT_COLORS=off
 ```
 
-\* Currently this is only implemented for the index part. Branches will be
-colored regardless.
+### Custom color values
+
+Color values are either determined by corresponding git colors (e.g. unstaged
+changes are colored
+[like `git status` would - search for `color.status.<slot>`](https://git-scm.com/docs/git-config)).
+You may override some or all of the color values by defining `RAPID_GIT_COLORS`
+as an associative array. The follwing array subscripts are evaluated by
+rapid-git:
+
+| subscript              | description                                                    | default color     |
+| ---------------------- | :------------------------------------------------------------- | ----------------- |
+| `reset`                | reset color back to defaults                                   | (invisible)       |
+| `branch`               | branch names                                                   | cyan              |
+| `branch_index`         | branch indexes                                                 | yellow            |
+| `branch_current`       | current branch name                                            | bold cyan         |
+| `branch_current_index` | current branch index                                           | bold yellow       |
+| `status_index`         | index of `rapid status`                                        | bold yellow       |
+| `status_staged`        | staged files                                                   | bold red          |
+| `status_unstaged`      | unstaged files                                                 | bold green        |
+| `status_untracked`     | untracked files                                                | bold blue         |
+| `status_unmerged`      | unmerged files                                                 | bold magenta      |
+| `mark_stage`           | color of symbol printed in front of files about to be staged   | yellow            |
+| `mark_reset`           | color of symbol printed in front of files about to be unstaged | yellow            |
+| `mark_drop`            | color of symbol printed in front of files about to be removed  | cyan              |
+| `mark_error`           | color of symbol for errors (e.g. nonexistent index)            | bold red          |
+
+
+Defining colors on Windows will most certainly speed up your rapid-git
+invocations because we can omit creating a couple of git processes.
+
+Example:
+
+```sh
+declare -A RAPID_GIT_COLORS
+RAPID_GIT_COLORS[status_index]='\e[0;34m' # blue
+RAPID_GIT_COLORS[branch_index]='\e[1;31m' # bright red
+# etc.
+
+# zsh users may use builtin colors support.
+autoload -U colors && colors
+typeset -A RAPID_GIT_COLORS
+RAPID_GIT_COLORS[status_index]=$fg[blue]
+RAPID_GIT_COLORS[branch_index]=$fg_bold[red]
+```
+
+### Debugging colors
+
+The `rapid colors` command displays your current color configuration.
+
+![rapid-git colors](https://raw.githubusercontent.com/rapid-git/rapid-git/master/images/colors.png)
 
 ## Authors
 

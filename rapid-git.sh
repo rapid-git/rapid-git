@@ -13,11 +13,7 @@ function rapid {
   local filter_staged='([MARC][ MD]|D[ M])'
   local filter_unmerged='(D[DU]|A[AU]|U[ADU])'
 
-  # Colors.
-  local c_end
-  local fg_black fg_red fg_green fg_yellow fg_blue fg_magenta fg_cyan fg_white
-  local fg_b_black fg_b_red fg_b_green fg_b_yellow fg_b_blue fg_b_magenta fg_b_cyan fg_b_white
-  local -A status_color
+  local -A colors
 
   function __rapid_colorize {
     # No colors if requested.
@@ -32,21 +28,40 @@ function rapid {
     return 1
   }
 
+  function __rapid_color_value {
+    # Color selection:
+    #   1. Use explicitly configured color from the RAPID_GIT_COLORS
+    #      associative array.
+    #   2. Use corresponding git config value, if available.
+    #   3. Otherwise, use git-supplied color code.
+    #
+    # We could use git config to configure custom colors, but that would force
+    # us to create a git process. On Windows, this is as slow as a snail bound
+    # to a turtle. Both moving in opposite directions.
+    local env_key=$1
+    local git_config=$2
+    local git_default=$3
+
+    echo -e "${RAPID_GIT_COLORS[$env_key]:-$(git config --get-color "$git_config" "$git_default")}"
+  }
+
   function __rapid_init_colors {
     __rapid_colorize || return
 
-    c_end="$(git config --get-color "" "reset")"
-
-    fg_yellow="$(git config --get-color "" "yellow")"
-    fg_cyan="$(git config --get-color "" "cyan")"
-    fg_b_red="$(git config --get-color "" "bold red")"
-    fg_b_yellow="$(git config --get-color "" "bold yellow")"
-    fg_b_magenta="$(git config --get-color "" "bold magenta")"
-    fg_b_cyan="$(git config --get-color "" "bold cyan")"
-
-    status_color[added]="$(git config --get-color color.status.added "bold green")"
-    status_color[unstaged]="$(git config --get-color color.status.changed "bold green")"
-    status_color[untracked]="$(git config --get-color color.status.untracked "bold blue")"
+    colors[reset]="$(__rapid_color_value                reset                ''                     'reset')"
+    colors[branch]="$(__rapid_color_value               branch               color.branch.local     'cyan')"
+    colors[branch_index]="$(__rapid_color_value         branch_index         ''                     'yellow')"
+    colors[branch_current]="$(__rapid_color_value       branch_current       color.branch.current   'bold cyan')"
+    colors[branch_current_index]="$(__rapid_color_value branch_current_index ''                     'bold yellow')"
+    colors[status_index]="$(__rapid_color_value         status_index         ''                     'bold yellow')"
+    colors[status_staged]="$(__rapid_color_value        status_staged        color.status.added     'bold red')"
+    colors[status_unstaged]="$(__rapid_color_value      status_unstaged      color.status.changed   'bold green')"
+    colors[status_untracked]="$(__rapid_color_value     status_untracked     color.status.untracked 'bold blue')"
+    colors[status_unmerged]="$(__rapid_color_value      status_unmerged      ''                     'bold magenta')"
+    colors[mark_stage]="$(__rapid_color_value           mark_stage           ''                     'yellow')"
+    colors[mark_reset]="$(__rapid_color_value           mark_reset           ''                     'yellow')"
+    colors[mark_drop]="$(__rapid_color_value            mark_drop            ''                     'cyan')"
+    colors[mark_error]="$(__rapid_color_value           mark_error           ''                     'bold red')"
   }
 
   function __rapid_zsh {
@@ -221,34 +236,34 @@ function rapid {
 
     if [[ "$mark_option" == "reset" ]]; then
       if [[ "$entry" =~ ^A ]]; then
-        mark="\t${fg_yellow}<${c_end} "
+        mark="\t${colors[mark_reset]}<${colors[reset]} "
 
       elif [[ "$entry" =~ ^R ]]; then
-        mark="\t${fg_yellow}~${c_end} "
+        mark="\t${colors[mark_reset]}~${colors[reset]} "
 
       elif [[ "$entry" =~ ^[MDCU] ]]; then
-        mark="\t${fg_yellow}-${c_end} "
+        mark="\t${colors[mark_reset]}-${colors[reset]} "
 
       fi
 
     elif [[ "$mark_option" == "drop" ]]; then
       if [[ "$entry" =~ $untracked ]]; then
-        mark="\t${fg_cyan}-${c_end} "
+        mark="\t${colors[mark_drop]}-${colors[reset]} "
 
       elif [[ "$entry" =~ ^[MADRCU\ ][MADRCU] ]]; then
-        mark="\t${fg_cyan}~${c_end} "
+        mark="\t${colors[mark_drop]}~${colors[reset]} "
 
       fi
 
     elif [[ "$mark_option" != "false" ]]; then
       if [[ "$entry" =~ $untracked ]]; then
-        mark="\t${fg_yellow}>${c_end} "
+        mark="\t${colors[mark_stage]}>${colors[reset]} "
 
       elif [[ "$entry" =~ ^[MADRCU\ ]R ]]; then
-        mark="\t${fg_yellow}~${c_end} "
+        mark="\t${colors[mark_stage]}~${colors[reset]} "
 
       elif [[ "$entry" =~ ^[MADRCU\ ][MDCU] ]]; then
-        mark="\t${fg_yellow}+${c_end} "
+        mark="\t${colors[mark_stage]}+${colors[reset]} "
 
       fi
     fi
@@ -282,7 +297,7 @@ function rapid {
 
     for key in ${keys[@]}; do
       if [[ "${query[$key]}" == '??' ]]; then
-        [[ "$mark_option" != "false" ]] && output+="\t${fg_b_red}?$c_end Nothing on index $key.\n"
+        [[ "$mark_option" != "false" ]] && output+="\t${colors[mark_error]}?${colors[reset]} Nothing on index $key.\n"
 
         # Remove key.
         __rapid_zsh && unset "query[$key]" || unset query[$key]
@@ -302,6 +317,23 @@ function rapid {
       # Nothing left likely means an error, e.g. user entered non-existing index.
       return 1
     fi
+  }
+
+  # Color configuration commands.
+  function __rapid__colors {
+    local -a keys
+
+    if ! __rapid_zsh; then
+      # In bash, we need the array indexes that are assigned.
+      keys=("${!colors[@]}")
+    else
+      # In zsh, we need an array of ordered keys of the associative array.
+      keys=(${(ko)colors})
+    fi
+
+    for key in ${keys[@]}; do
+      echo "$key -> ${colors[$key]}xxx${colors[reset]}"
+    done
   }
 
   # Commands for the index.
@@ -414,11 +446,9 @@ function rapid {
       shift 2
     done
 
-    local index_color=$fg_b_yellow
-
     local colorize
     if __rapid_colorize; then
-      colorize="s/^(.*)\t(.*)\t(.*)/$index_color\1$c_end\t$color\2$c_end\t$color\3$c_end/"
+      colorize="s/^(.*)\t(.*)\t(.*)/${colors[status_index]}\1${colors[reset]}\t$color\2${colors[reset]}\t$color\3${colors[reset]}/"
     fi
 
     local order_fields='s/^(.*)\t(.*)\t(.*)/  \2 \1 \3/'
@@ -452,7 +482,7 @@ function rapid {
     __rapid_status_of_type 'Index - staged files' \
       "$git_status" \
       "$filter_staged" \
-      "${status_color[added]}" \
+      "${colors[status_staged]}" \
       'M[MD ]'    'modified:        ' \
       'A[MD ]'    'new file:        ' \
       'D[M ]'     'deleted:         ' \
@@ -462,20 +492,20 @@ function rapid {
     __rapid_status_of_type 'Work tree - unstaged files' \
       "$git_status" \
       "$filter_unstaged" \
-      "${status_color[unstaged]}" \
+      "${colors[status_unstaged]}" \
       '[MARC ]?M' 'modified:        ' \
       '[MARC ]?D' 'deleted:         '
 
     __rapid_status_of_type 'Untracked files' \
       "$git_status" \
       "$filter_untracked" \
-      "${status_color[untracked]}" \
+      "${colors[status_untracked]}" \
       '\?\?'      'untracked file:  '
 
     __rapid_status_of_type 'Unmerged files' \
       "$git_status" \
       "$filter_unmerged" \
-      "$fg_b_magenta" \
+      "${colors[status_unmerged]}" \
       'UU'        'both modified:   ' \
       'AA'        'both added:      ' \
       'UA'        'added by them:   ' \
@@ -552,9 +582,9 @@ function rapid {
         # Expands 1 to (1), 2 to (2), ...
         {s/([0-9]{1,3})(\t.*)/(\1)\2/}
         # Colorizes the current branch
-        {s/^(>.+)(\([0-9]{1,3}\))(.*)/$fg_b_cyan\1$c_end$fg_b_yellow\2$c_end$fg_b_cyan\3$c_end/}
-        # Colorizes the current branch
-        {s/^([^>]+)(\([0-9]{1,3}\))(.*)/\1$fg_yellow\2$c_end$fg_cyan\3$c_end/}
+        {s/^(>.+)(\([0-9]{1,3}\))(.*)/${colors[branch_current]}\1${colors[reset]}${colors[branch_current_index]}\2${colors[reset]}${colors[branch_current]}\3${colors[reset]}/}
+        # Colorizes other branches
+        {s/^([^>]+)(\([0-9]{1,3}\))(.*)/\1${colors[branch_index]}\2${colors[reset]}${colors[branch]}\3${colors[reset]}/}
         p"
       )"
 
@@ -591,13 +621,13 @@ function rapid {
       )"
 
       if [[ -z "$toCheckout" ]]; then
-        echo -e "\t${fg_b_red}?$c_end Nothing on index $line."
+        echo -e "\t${colors[mark_error]}?${colors[reset]} Nothing on index $line."
       else
         git checkout "$toCheckout"
         return $?
       fi
     else
-      echo -e "\t${fg_b_red}x$c_end Invalid input: $line."
+      echo -e "\t${colors[mark_error]}x${colors[reset]} Invalid input: $line."
     fi
 
     return 1
@@ -608,13 +638,13 @@ function rapid {
       branch="$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")"
 
       if [[ -z "$branch" ]]; then
-        echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
+        echo -e "\t${colors[mark_error]}?${colors[reset]} Nothing on index $1."
       else
         git merge "$branch"
         return $?
       fi
     else
-      echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
+      echo -e "\t${colors[mark_error]}x${colors[reset]} Invalid input: $1."
     fi
 
     return 1
@@ -637,13 +667,13 @@ function rapid {
         branch="$(git branch | sed '/detached from/ d;' | sed -n "$1 !d;s/^..//;p")"
 
         if [[ -z "$branch" ]]; then
-          echo -e "\t${fg_b_red}?$c_end Nothing on index $1."
+          echo -e "\t${colors[mark_error]}?${colors[reset]} Nothing on index $1."
         else
           git rebase "$branch"
           return $?
         fi
       else
-        echo -e "\t${fg_b_red}x$c_end Invalid input: $1."
+        echo -e "\t${colors[mark_error]}x${colors[reset]} Invalid input: $1."
       fi
     fi
 
