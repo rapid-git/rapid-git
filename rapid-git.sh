@@ -49,10 +49,10 @@ function rapid {
 
     value="${RAPID_GIT_COLORS[$key]}"
     if [[ -z "$value" ]]; then
-      cache_key="$git_config-${git_default// /.}"
+      cache_key="$git_config-$git_default"
 
       value="${git_color_cache[$cache_key]:-$(git config --get-color "$git_config" "$git_default")}"
-      git_color_cache[$cache_key]=$value
+      git_color_cache[$cache_key]="$value"
     fi
 
     colors[$key]="$value"
