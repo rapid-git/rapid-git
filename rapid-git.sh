@@ -84,11 +84,12 @@ function rapid {
   function __rapid_functions {
     local function_prefix=$1
 
+    rapid_functions=()
     if ! __rapid_zsh; then
       # Bash uses declare to return all functions.
-      IFS=$'\n'
-      # using <cut -d delim -f list> to support BSD and GNU cut
-      rapid_functions=($(declare -F | cut -d ' ' -f 3 | /usr/bin/grep "$function_prefix"))
+      while read -r _declare _f fun; do
+        [[ "$fun" =~ ^$function_prefix ]] && rapid_functions+=("$fun")
+      done <<< "$(declare -F)"
     else
       # zsh has a function associative array.
       local -a all_functions
@@ -100,7 +101,7 @@ function rapid {
   function __rapid_cleanup {
     __rapid_functions "$function_prefix"
 
-    for fun in $rapid_functions; do
+    for fun in "${rapid_functions[@]}"; do
       unset -f "$fun"
     done
   }
