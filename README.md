@@ -207,8 +207,8 @@ rapid-git:
 | `mark_error`           | color of symbol for errors (e.g. nonexistent index)            |                          | bold red          |
 
 
-Defining colors on Windows will most certainly speed up your rapid-git
-invocations because we can omit creating a couple of git processes.
+**Defining colors on Windows will most certainly speed up your rapid-git
+invocations because we can omit creating a couple of git processes.**
 
 Example:
 
