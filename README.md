@@ -186,7 +186,7 @@ Color values are either determined by corresponding git colors (e.g. unstaged
 changes are colored
 [like `git status` would - search for `color.status.<slot>`](https://git-scm.com/docs/git-config)).
 You may override some or all of the color values by defining `RAPID_GIT_COLORS`
-as an associative array. The follwing array subscripts are evaluated by
+as an associative array. The following array subscripts are evaluated by
 rapid-git:
 
 | subscript              | description                                                    | default color     |
