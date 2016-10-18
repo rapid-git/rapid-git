@@ -71,7 +71,7 @@ function rapid {
     __rapid_color_value 'status_staged'        'color.status.added'     'bold red'
     __rapid_color_value 'status_unstaged'      'color.status.changed'   'bold green'
     __rapid_color_value 'status_untracked'     'color.status.untracked' 'bold blue'
-    __rapid_color_value 'status_unmerged'      ''                       'bold magenta'
+    __rapid_color_value 'status_unmerged'      'color.status.changed'   'bold magenta'
     __rapid_color_value 'mark_stage'           ''                       'yellow'
     __rapid_color_value 'mark_reset'           ''                       'yellow'
     __rapid_color_value 'mark_drop'            ''                       'cyan'
