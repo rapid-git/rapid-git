@@ -141,8 +141,8 @@ function rapid {
     local git_status=$1
     local include_filter="^$2"
 
-    while IFS='' read -r line; do
-      [[ "$line" =~ $include_filter ]] && { lines+="$line"$'\n' }
+    while IFS= read -r line; do
+      [[ "$line" =~ $include_filter ]] && lines+="$line"$'\n'
     done <<< "$git_status"
 
     # Delete last newline.
