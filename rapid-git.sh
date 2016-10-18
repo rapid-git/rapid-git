@@ -587,7 +587,6 @@ function rapid {
 
       [[ $? -eq 0 ]] || return $?
 
-      # TODO: Conditional coloring (see __rapid_status_of_type).
       branches="$(
         sed '/detached from/ d' <<< "$branches" | \
         sed -r {=} | \
