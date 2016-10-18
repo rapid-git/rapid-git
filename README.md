@@ -189,22 +189,22 @@ You may override some or all of the color values by defining `RAPID_GIT_COLORS`
 as an associative array. The following array subscripts are evaluated by
 rapid-git:
 
-| subscript              | description                                                    | default color     |
-| ---------------------- | :------------------------------------------------------------- | ----------------- |
-| `reset`                | reset color back to defaults                                   | (invisible)       |
-| `branch`               | branch names                                                   | cyan              |
-| `branch_index`         | branch indexes                                                 | yellow            |
-| `branch_current`       | current branch name                                            | bold cyan         |
-| `branch_current_index` | current branch index                                           | bold yellow       |
-| `status_index`         | index of `rapid status`                                        | bold yellow       |
-| `status_staged`        | staged files                                                   | bold red          |
-| `status_unstaged`      | unstaged files                                                 | bold green        |
-| `status_untracked`     | untracked files                                                | bold blue         |
-| `status_unmerged`      | unmerged files                                                 | bold magenta      |
-| `mark_stage`           | color of symbol printed in front of files about to be staged   | yellow            |
-| `mark_reset`           | color of symbol printed in front of files about to be unstaged | yellow            |
-| `mark_drop`            | color of symbol printed in front of files about to be removed  | cyan              |
-| `mark_error`           | color of symbol for errors (e.g. nonexistent index)            | bold red          |
+| subscript              | description                                                    | git config               | default color     |
+| :--------------------- | :------------------------------------------------------------- | :----------------------- | :---------------- |
+| `reset`                | reset color back to defaults                                   |                          | (invisible)       |
+| `branch`               | branch names                                                   | `color.branch.local`     | cyan              |
+| `branch_index`         | branch indexes                                                 |                          | yellow            |
+| `branch_current`       | current branch name                                            | `color.branch.current`   | bold cyan         |
+| `branch_current_index` | current branch index                                           |                          | bold yellow       |
+| `status_index`         | index of `rapid status`                                        |                          | bold yellow       |
+| `status_staged`        | staged files                                                   | `color.status.added`     | bold red          |
+| `status_unstaged`      | unstaged files                                                 | `color.status.changed`   | bold green        |
+| `status_untracked`     | untracked files                                                | `color.status.untracked` | bold blue         |
+| `status_unmerged`      | unmerged files                                                 | `color.status.changed`   | bold magenta      |
+| `mark_stage`           | color of symbol printed in front of files about to be staged   |                          | yellow            |
+| `mark_reset`           | color of symbol printed in front of files about to be unstaged |                          | yellow            |
+| `mark_drop`            | color of symbol printed in front of files about to be removed  |                          | cyan              |
+| `mark_error`           | color of symbol for errors (e.g. nonexistent index)            |                          | bold red          |
 
 
 Defining colors on Windows will most certainly speed up your rapid-git
