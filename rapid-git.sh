@@ -139,9 +139,14 @@ function rapid {
 
   function __rapid_filter_git_status {
     local git_status=$1
-    local filter="/^$2/!d"
+    local include_filter="^$2"
 
-    printf "%s" "$(sed -r "$filter" <<< "$git_status")"
+    while IFS='' read -r line; do
+      [[ "$line" =~ $include_filter ]] && { lines+="$line"$'\n' }
+    done <<< "$git_status"
+
+    # Delete last newline.
+    lines="${lines%?}"
   }
 
   function __rapid_query_lines {
@@ -362,7 +367,8 @@ function rapid {
     __rapid_git_status
     [[ $? -eq 0 ]] || return $?
 
-    local lines="$(__rapid_filter_git_status "$git_status" "$filter")"
+    local lines
+    __rapid_filter_git_status "$git_status" "$filter"
     __rapid_query_ranges_and_git_params "$lines" "${args[@]}"
 
     __rapid_prepare "$mark_option"
@@ -445,7 +451,8 @@ function rapid {
     local filter=$3
     local color=$4
 
-    local lines="$(__rapid_filter_git_status "$git_status" "$filter")"
+    local lines
+    __rapid_filter_git_status "$git_status" "$filter"
 
     if [[ -z "$lines" ]]; then
       return
