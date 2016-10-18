@@ -8,10 +8,11 @@ function rapid {
 
   local falsey='^false|off|0$'
 
-  local filter_untracked='\?\?'
-  local filter_unstaged='[ MARC][MD]'
-  local filter_staged='([MARC][ MD]|D[ M])'
-  local filter_unmerged='(D[DU]|A[AU]|U[ADU])'
+  local -A filter
+  filter[untracked]='\?\?'
+  filter[unstaged]='[ MARC][MD]'
+  filter[staged]='([MARC][ MD]|D[ M])'
+  filter[unmerged]='(D[DU]|A[AU]|U[ADU])'
 
   local -A colors
   local -A git_color_cache
@@ -416,31 +417,31 @@ function rapid {
   }
 
   function __rapid__track {
-    __rapid_index_committing_command 'git add' "$filter_untracked" 'stage' "$@"
+    __rapid_index_committing_command 'git add' "${filter[untracked]}" 'stage' "$@"
   }
 
   function __rapid__stage {
-    __rapid_index_committing_command 'git add' "$filter_unstaged" 'stage' "$@"
+    __rapid_index_committing_command 'git add' "${filter[unstaged]}" 'stage' "$@"
   }
 
   function __rapid__unstage {
-    __rapid_index_committing_command 'git reset --quiet' "$filter_staged" 'reset' "$@"
+    __rapid_index_committing_command 'git reset --quiet' "${filter[staged]}" 'reset' "$@"
   }
 
   function __rapid__drop {
-    __rapid_index_committing_command 'git checkout' "$filter_unstaged" 'drop' "$@"
+    __rapid_index_committing_command 'git checkout' "${filter[unstaged]}" 'drop' "$@"
   }
 
   function __rapid__remove {
-    __rapid_index_committing_command 'rm -rf' "$filter_untracked" 'drop' "$@"
+    __rapid_index_committing_command 'rm -rf' "${filter[untracked]}" 'drop' "$@"
   }
 
   function __rapid__diff {
-    local filter="$filter_unstaged"
+    local filter="${filter[unstaged]}"
     local cached='^--cached|--staged$'
 
     if [[ "$1" =~ $cached ]]; then
-      filter="$filter_staged"
+      filter="${filter[staged]}"
     fi
 
     __rapid_index_committing_command 'git diff' "$filter" 'false' "$@"
@@ -502,7 +503,7 @@ function rapid {
 
     __rapid_status_of_type 'Index - staged files' \
       "$git_status" \
-      "$filter_staged" \
+      "${filter[staged]}" \
       "${colors[status_staged]}" \
       'M[MD ]'    'modified:        ' \
       'A[MD ]'    'new file:        ' \
@@ -512,20 +513,20 @@ function rapid {
 
     __rapid_status_of_type 'Work tree - unstaged files' \
       "$git_status" \
-      "$filter_unstaged" \
+      "${filter[unstaged]}" \
       "${colors[status_unstaged]}" \
       '[MARC ]?M' 'modified:        ' \
       '[MARC ]?D' 'deleted:         '
 
     __rapid_status_of_type 'Untracked files' \
       "$git_status" \
-      "$filter_untracked" \
+      "${filter[untracked]}" \
       "${colors[status_untracked]}" \
       '\?\?'      'untracked file:  '
 
     __rapid_status_of_type 'Unmerged files' \
       "$git_status" \
-      "$filter_unmerged" \
+      "${filter[unmerged]}" \
       "${colors[status_unmerged]}" \
       'UU'        'both modified:   ' \
       'AA'        'both added:      ' \
