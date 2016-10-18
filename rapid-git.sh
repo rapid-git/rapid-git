@@ -609,7 +609,7 @@ function rapid {
         p"
       )"
 
-      printf "${branches}\r\n"
+      printf "${branches}\n"
 
       return 0
     fi
