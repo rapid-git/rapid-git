@@ -72,9 +72,11 @@ function rapid {
     __rapid_color_value 'status_unstaged'      'color.status.changed'   'bold green'
     __rapid_color_value 'status_untracked'     'color.status.untracked' 'bold blue'
     __rapid_color_value 'status_unmerged'      'color.status.changed'   'bold magenta'
+    __rapid_color_value 'ignored'              ''                       'bold green'
     __rapid_color_value 'mark_stage'           ''                       'yellow'
     __rapid_color_value 'mark_reset'           ''                       'yellow'
     __rapid_color_value 'mark_drop'            ''                       'cyan'
+    __rapid_color_value 'mark_ignore'          ''                       'bold green'
     __rapid_color_value 'mark_error'           ''                       'bold red'
   }
 
@@ -274,6 +276,12 @@ function rapid {
         mark="\t${colors[mark_drop]}~${colors[reset]} "
 
       fi
+
+    elif [[ "$mark_option" == "ignore" ]]; then
+      mark="\t${colors[mark_ignore]}<${colors[reset]} "
+
+    elif [[ "$mark_option" == "ignored" ]]; then
+      mark="\t${colors[mark_ignore]}>${colors[reset]} "
 
     elif [[ "$mark_option" != "false" ]]; then
       if [[ "$entry" =~ $untracked ]]; then
