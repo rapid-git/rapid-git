@@ -361,6 +361,31 @@ function rapid {
     done
   }
 
+  # Commands for ignored files (assumed unchanged).
+  function __rapid_index_ignoring_command {
+    local git_command=$1
+    local mark_option=$2
+
+    shift 2
+    local -a args
+    args=($@)
+
+    local lines
+    __rapid_ignored_files
+
+    if [[ -z "$lines" ]]; then
+      return
+    fi
+    __rapid_query_ranges_and_git_params "$lines" "${args[@]}"
+
+    __rapid_prepare "$mark_option" 0
+    if [[ $? -ne 0 ]]; then
+      return 1
+    fi
+
+    __rapid_construct_command "$git_command" "committing"
+  }
+
   # Commands for the index.
   function __rapid_index_committing_command {
     local git_command=$1
@@ -450,6 +475,57 @@ function rapid {
     fi
 
     __rapid_index_committing_command 'git diff' "$filter" 'false' "$@"
+  }
+
+  function __rapid__ignore {
+    __rapid_index_committing_command 'git update-index --assume-unchanged' "${filter[unstaged]}" 'ignore' "$@"
+  }
+
+  function __rapid__unignore {
+    __rapid_index_ignoring_command 'git update-index --no-assume-unchanged' 'ignored' "$@"
+  }
+
+  function __rapid_ignored_files {
+    # List files and their status including assumed-unchanged -> filter assumed-unchanged -> cut prefix
+    lines="$(git ls-files -v | sed -n "/^[a-z]\s/ p" | sed 's/^..//')"
+  }
+
+  function __rapid__ignored {
+    local header='Temporary ignored files'
+    local sub_header='(using "assumed unchanged" bit)'
+
+    local lines
+    __rapid_ignored_files
+
+    if [[ -z "$lines" ]]; then
+      return
+    fi
+
+    local colorize
+    if __rapid_colorize; then
+      colorize="s/^  (.*) (.*)/  ${colors[status_index]}\1${colors[reset]} ${colors[ignored]}\2${colors[reset]}/"
+    fi
+
+    local formatted="$(
+    sed -r '
+      # Put index between lines: <file> -> <index>\n<file>
+      {=}
+      ' <<< "$lines" | \
+    sed --silent -r -e '
+      # <index>\n<file> -> <index>\t<file>
+      {N;s/\n/\t/}
+    ' -e :a -e "
+      # Right-pad indexes shorter than three characters to three characters.
+      {s/^[ 0-9]{1,2}\t.*/ &/;ta}
+    " -e "
+      # <index>\t<file> -> (<index>) <file>
+      {s/^(( *)([1-9][0-9]*))\t(.*)/  \2(\3) \4/}
+
+      # Replace status with text, colorize fields, reorder fields.
+      {$colorize;p}"
+    )"
+
+    printf "%s:\n%s\n\n%s\n\n" "$header" "$sub_header" "$formatted"
   }
 
   function __rapid_status_of_type {
