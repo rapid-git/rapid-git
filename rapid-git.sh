@@ -293,16 +293,13 @@ function rapid {
 
   function __rapid_prepare {
     local mark_option="$1"
-    local is_branch_command="$2"
     local git_root="$(git rev-parse --show-toplevel)"
-    local prefix_count
+    local prefix_count=$2
+    local is_branch_command="$3"
     local new_prefix
 
     if [[ "$is_branch_command" != "true" ]]; then
-      prefix_count=3
       new_prefix="$git_root/"
-    else
-      prefix_count=2
     fi
 
     local -a keys
@@ -373,7 +370,7 @@ function rapid {
     __rapid_filter_git_status "$git_status" "$filter"
     __rapid_query_ranges_and_git_params "$lines" "${args[@]}"
 
-    __rapid_prepare "$mark_option"
+    __rapid_prepare "$mark_option" 3
     if [[ $? -ne 0 ]]; then
       return 1
     fi
@@ -558,7 +555,7 @@ function rapid {
       return 1
     fi
 
-    __rapid_prepare "false" "true"
+    __rapid_prepare "false" 2 "true"
     if [[ $? -ne 0 ]]; then
       return 1
     fi
