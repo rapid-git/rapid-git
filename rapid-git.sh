@@ -447,6 +447,53 @@ function rapid {
     __rapid_index_committing_command 'git diff' "$filter" 'false' "$@"
   }
 
+  function __rapid_parse_arguments {
+    type="$1"
+    mark="$2"
+    command="$3"
+
+    shift 3
+    indexes="$@"
+
+    case "$type" in
+      untracked)
+        type=untracked
+        ;;
+      worktree)
+        type=unstaged
+        ;;
+      index)
+        type=staged
+        ;;
+      *)
+        error="Type needs to be untracked, worktree or index, but was $type"
+        return 1
+        ;;
+    esac
+
+    if [[ -z "$mark" ]]; then
+      error='Could not get mark'
+      return 1
+    fi
+
+    if [[ -z "$command" ]]; then
+      error='Could not get command'
+      return 1
+    fi
+  }
+
+  function __rapid__custom {
+    local args="$@"
+
+    __rapid_parse_arguments "$@"
+    if [[ $? != 0 ]]; then
+      printf '%s: %s\n' "$error" "$args"
+      return 1
+    fi
+
+    __rapid_index_committing_command "$command" "${filter[$type]}" "$mark" "$indexes"
+  }
+
   function __rapid_status_of_type {
     local header=$1
     local git_status=$2
@@ -715,6 +762,8 @@ function rapid {
   local git_status
   local output
   local exit_status
+  # For custom commands.
+  local type mark command indexes error
 
   __rapid_init_colors
 

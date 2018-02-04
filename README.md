@@ -84,6 +84,7 @@ These commands relate to the git index and the working copy.
 * [rapid drop](#rapid-drop)
 * [rapid remove](#rapid-remove)
 * [rapid diff](#rapid-diff)
+* **[Create your own commands](#custom-file-commands)**
 
 ### Branch Commands
 
@@ -141,13 +142,63 @@ These commands relate to git branches.
 
 ### rapid diff
 
-* Show the diff of one or multiple files
+* Show the diff of one or multiple files by [index or
+  range](#specifying-indexes)
 * Equivalent to `git diff`, allows passing arbitrary options options (e.g.
   `--word-diff`)
 * Indexes are based on **unstaged files** of `rapid status` when using no
   additional option
 * Indexes are based on **staged files** of `rapid status` when using `--cached`
   or `--staged` as the first option
+
+### Custom file commands
+
+You can create your own rapid commands to handle untracked files, unstaged files
+and staged files. It's best to define these as aliases to save you some typing.
+
+There are three sub-commands available to you:
+
+* `rapid custom untracked` to handle **untracked files** by [index or
+  range](#specifying-indexes)
+* `rapid custom worktree` to handle **unstaged files** by [index or
+  range](#specifying-indexes)
+* `rapid custom index` to handle **staged files** by [index or
+  range](#specifying-indexes)
+
+All commands require 3 arguments of which 2 should be defined in your aliases.
+The general form is:
+
+```sh
+rapid custom {untracked|worktree|index} <mark> <command> <index>...
+```
+
+`mark` and `command` should be defined by the alias, whereas `index`es will
+later be added to the command when you execute the alias.
+
+`mark` is responsible for displaying the symbol in front of files processed:
+
+* `stage` displays `>`, `~` or `+` depending on file status
+* `reset` displays `<`, `~` or `-` depending on file status
+* `drop` displays `-` or `~` depending on file status
+* `false` disables all output, even in case of errors
+
+`command` can be any git command, e. g. `git add`, `git add --patch`, `git reset
+HEAD`, `git update-index --assume-unchanged`, `git diff --staged` etc. You need
+to make sure not to pass any arguments describing files to be processed. E.g.
+`git add --all` is forbidden, albeit not checked for.
+
+In fact, you can also use other programs like `cat`:
+
+```sh
+$ alias qcat='rapid custom worktree false cat'
+$ qcat 1
+# Displays contents of unstaged file at index 1.
+```
+
+Using this facility you can in fact [recreate all builtin
+commands](https://github.com/agross/dotfiles/blob/master/git/rapid-git-aliases.zsh).
+
+---
 
 ### rapid branch
 
