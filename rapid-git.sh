@@ -453,7 +453,7 @@ function rapid {
     command="$3"
 
     shift 3
-    indexes="$@"
+    indexes=("$@")
 
     case "$type" in
       untracked)
@@ -490,8 +490,7 @@ function rapid {
       printf '%s: %s\n' "$error" "$args"
       return 1
     fi
-
-    __rapid_index_committing_command "$command" "${filter[$type]}" "$mark" "$indexes"
+    __rapid_index_committing_command "$command" "${filter[$type]}" "$mark" "${indexes[@]}"
   }
 
   function __rapid_status_of_type {
